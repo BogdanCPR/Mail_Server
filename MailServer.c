@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define PORT 53555
+#define PORT 50000
 #define MAX_MESSAGE_SIZE 1024
 
 int NR_CLIENTI=0;
@@ -306,7 +306,7 @@ int main() {
     // clienti = addClient(clienti,"sindilarstefan@casin.ro","Sindilar","Stefan");
     // saveClients(clienti);
 
-    printf("Adress: %s\nName: %s\n",clienti[1].MailAdress,clienti[1].Name);
+    printf("Adress: %s\nName: %s\n\n",clienti[1].MailAdress,clienti[1].Name);
     // saveClients(clienti);
     // clienti = removeClient(clienti,"test@casin.ro");
     // printf("Adresa: %s\nNume: %s\nPrenume: %s",clienti[0].MailAdress,clienti[0].Nume,clienti[0].Prenume);
