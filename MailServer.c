@@ -1,28 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#define PORT 50000
-#define MAX_MESSAGE_SIZE 1024
-
-int NR_CLIENTI=0;
-int NR_MAILS=0;
-
-typedef struct{
-    char* MailAdress;
-    char* Name;
-}Client;
-
-typedef struct{
-    int ID;
-    char* Subiect;
-    char* Message;
-    char* SourceAdress;
-    char* DestinationAdress;
-}Mail;
+#include "mail_server.h"
 
 int generateRandomID()
 {
@@ -247,7 +223,7 @@ Mail* removeMail(Mail* mails,int ID)
 
 void saveClients(Client* clienti)
 {
-    int fd = open("clients.db", O_WRONLY | O_TRUNC | S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    int fd = open("clients.db", O_WRONLY | O_TRUNC | O_CREAT, 0644);
     if(fd == -1)
     {
         perror("error opening file");
@@ -288,58 +264,4 @@ void handle_client(int client_socket) {
     }
 
     close(client_socket);
-}
-
-int main() {
-    int server_socket, client_socket;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t addr_len = sizeof(struct sockaddr);
-    Client* clienti = NULL;
-    Mail* mailuri = NULL;
-    srand(time(NULL));
-
-
-    loadClients(&clienti);
-    //init(&clienti);
-    // printf("Adresa: %s\nNume: %s\nPrenume: %s",clienti[0].MailAdress,clienti[0].Nume,clienti[0].Prenume);
-    // clienti = addClient(clienti,"capritabogdan@casin.ro","Caprita","Bogdan");
-    // clienti = addClient(clienti,"sindilarstefan@casin.ro","Sindilar","Stefan");
-    // saveClients(clienti);
-
-    printf("Adress: %s\nName: %s\n\n",clienti[1].MailAdress,clienti[1].Name);
-    // saveClients(clienti);
-    // clienti = removeClient(clienti,"test@casin.ro");
-    // printf("Adresa: %s\nNume: %s\nPrenume: %s",clienti[0].MailAdress,clienti[0].Nume,clienti[0].Prenume);
-
-    
-
-    // Create socket
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    // Set up server address
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    // Bind
-    bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr));
-
-    // Listen for incoming connections
-    listen(server_socket, 5);
-
-    printf("Server listening on port %d...\n", PORT);
-
-    while(1) {
-        // Accept connection
-        client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &addr_len);
-
-        printf("New connection accepted\n");
-
-        // Handle client
-        handle_client(client_socket);
-    }
-
-    close(server_socket);
-
-    return 0;
 }
