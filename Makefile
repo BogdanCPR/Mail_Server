@@ -1,5 +1,5 @@
 all : Server_Demo Client_Demo
-.PHONY: clean
+.PHONY: clean resetDB
 
 MailServer.o : MailServer.c
 	gcc -c MailServer.c -o MailServer.o
@@ -18,3 +18,7 @@ Client_Demo : client_demo.c lib_mail.so
 
 clean:
 	rm *.o *.so
+
+resetDB: 
+	rm *.db
+	touch clients.db mails.db ids.db

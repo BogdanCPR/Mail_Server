@@ -6,9 +6,19 @@ int main() {
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_len = sizeof(struct sockaddr);
-    Client *clienti = NULL;
+    Client *clients = NULL;
+    Mail *mails = NULL;
 
-    loadClients(&clienti);
+    loadClients(&clients);
+    loadMails(&mails);
+
+    //mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
+    //mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
+    mails = removeMail(mails, 30886,ACTION_RM_RECEIVER);
+    saveMails(mails);
+    saveClients(clients);
+    return(0);
+    
 
     // Create socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
