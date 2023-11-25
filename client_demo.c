@@ -2,6 +2,7 @@
 
 int main(int argc, char* argv[])
 {
+    srand(time(NULL));
 	int status, valread, client_fd;
 	struct sockaddr_in serv_addr;
 	char* hello = "Hello from client";
@@ -10,7 +11,6 @@ int main(int argc, char* argv[])
 		printf("\n Socket creation error \n");
 		return -1;
 	}
-
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 
