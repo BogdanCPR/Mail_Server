@@ -15,8 +15,7 @@ int NR_CLIENTI=0;
 
 struct _client{
     char* MailAdress;
-    char* Nume;
-    char* Prenume;
+    char* Name;
 };
 typedef struct _client Client;
 
@@ -27,12 +26,14 @@ struct _mail{
 };
 typedef struct _mail Mail;
 
-Client* addClient(Client* clienti, char* mailAdress, char* nume, char* prenume);
+Client* addClient(Client* clienti, char* mailAdress, char* name);
 Client* removeClient(Client* clienti, char* mailAdress);
 
 void loadClients(Client** clienti);
 void saveClients(Client* clienti);
 
 void handle_client(int client_socket);
+
+int generateRandomID();
 
 #endif /* MAIL_SERVER_H */
