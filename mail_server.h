@@ -21,12 +21,12 @@
 #define ACTION_RM_RECEIVER 2
 #define ACTION_DELETE 3
 
-int NR_CLIENTS=0;
-int NR_MAILS=0;
+extern int NR_CLIENTS;
+extern int NR_MAILS;
 
 struct _client{
     char* MailAdress;
-    char* Name;
+    char* Password;
 };
 typedef struct _client Client;
 

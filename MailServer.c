@@ -1,5 +1,8 @@
 #include "mail_server.h"
 
+int NR_CLIENTS = 0;
+int NR_MAILS = 0;
+
 void breakpoint(char *message)
 {
     printf("%s\n", message);
@@ -96,21 +99,21 @@ int generateRandomID()
 
 
 
-Client *addClient(Client *clienti, char *mailAdress, char *name)
+Client *addClient(Client *clienti, char *mailAdress, char *password)
 {
     NR_CLIENTS++;
     Client *AUX = (Client *)malloc(NR_CLIENTS * sizeof(Client));
     for (int i = 0; i < NR_CLIENTS - 1; i++)
     {
         AUX[i].MailAdress = (char *)malloc((strlen(clienti[i].MailAdress) + 1) * sizeof(char));
-        AUX[i].Name = (char *)malloc((strlen(clienti[i].Name) + 1) * sizeof(char));
+        AUX[i].Password = (char *)malloc((strlen(clienti[i].Password) + 1) * sizeof(char));
         strcpy(AUX[i].MailAdress, clienti[i].MailAdress);
-        strcpy(AUX[i].Name, clienti[i].Name);
+        strcpy(AUX[i].Password, clienti[i].Password);
     }
     AUX[NR_CLIENTS - 1].MailAdress = (char *)malloc(strlen(mailAdress) * sizeof(char));
-    AUX[NR_CLIENTS - 1].Name = (char *)malloc(strlen(name) * sizeof(char));
+    AUX[NR_CLIENTS - 1].Password = (char *)malloc(strlen(password) * sizeof(char));
     strcpy(AUX[NR_CLIENTS - 1].MailAdress, mailAdress);
-    strcpy(AUX[NR_CLIENTS - 1].Name, name);
+    strcpy(AUX[NR_CLIENTS - 1].Password, password);
 
     return AUX;
 }
@@ -128,7 +131,7 @@ void loadClients(Client **clienti)
 
     char buf[1024];
     char adress[64];
-    char name[64];
+    char password[64];
     int i = 0;
     char readed[1];
     while (read(fd, readed, 1) > 0)
@@ -144,9 +147,9 @@ void loadClients(Client **clienti)
             strcpy(adress, token);
 
             token = strtok(NULL, "\n");
-            strcpy(name, token);
+            strcpy(password, token);
 
-            *clienti = addClient(*clienti, adress, name);
+            *clienti = addClient(*clienti, adress, password);
             i = 0;
         }
     }
@@ -164,9 +167,9 @@ Client *removeClient(Client *clienti, char *mailAdress)
         if (strcmp(clienti[i].MailAdress, mailAdress))
         {
             AUX[k].MailAdress = (char *)malloc((strlen(clienti[i].MailAdress) + 1) * sizeof(char));
-            AUX[k].Name = (char *)malloc((strlen(clienti[i].Name) + 1) * sizeof(char));
+            AUX[k].Password = (char *)malloc((strlen(clienti[i].Password) + 1) * sizeof(char));
             strcpy(AUX[k].MailAdress, clienti[i].MailAdress);
-            strcpy(AUX[k].Name, clienti[i].Name);
+            strcpy(AUX[k].Password, clienti[i].Password);
             k++;
         }
     }
@@ -185,7 +188,7 @@ void saveClients(Client *clienti)
     {
         write(fd, clienti[i].MailAdress, strlen(clienti[i].MailAdress));
         write(fd, " ", 1);
-        write(fd, clienti[i].Name, strlen(clienti[i].Name));
+        write(fd, clienti[i].Password, strlen(clienti[i].Password));
         write(fd, "\n", 1);
     }
 
