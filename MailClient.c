@@ -1,5 +1,4 @@
 #include "mail_server.h"
-#include <unistd.h>
 
 
 void clear_console()
