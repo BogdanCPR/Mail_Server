@@ -2,6 +2,7 @@
 
 int main(int argc, char* argv[])
 {
+
 	/*int status, valread, client_fd;
 	struct sockaddr_in serv_addr;
 	char* hello = "Hello from client";
@@ -10,7 +11,6 @@ int main(int argc, char* argv[])
 		printf("\n Socket creation error \n");
 		return -1;
 	}
-
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 
@@ -25,6 +25,7 @@ int main(int argc, char* argv[])
 	if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
 		printf("\nConnection Failed \n");
 		return -1;
+
 	}*/
 
     //AICI POTI TRIMITE COMENZI///
@@ -53,5 +54,6 @@ int main(int argc, char* argv[])
 
 	// closing the connected socket
 	//close(client_fd);
+
 	return 0;
 }
