@@ -84,14 +84,17 @@ int generateRandomID()
         perror("error opening file");
         return 0;
     }
+
     if (write(fd, &ID, sizeof(int)) == -1)
     {
         perror("error writing in file");
         return 0;
     }
     close(fd);
-    return ID;
 }
+
+
+
 
 Client *addClient(Client *clienti, char *mailAdress, char *name)
 {
@@ -112,6 +115,7 @@ Client *addClient(Client *clienti, char *mailAdress, char *name)
     return AUX;
 }
 
+
 void loadClients(Client **clienti)
 {
     int fd = open("clients.db", O_RDONLY);
@@ -120,6 +124,7 @@ void loadClients(Client **clienti)
         perror("error opening file");
         return;
     }
+
 
     char buf[1024];
     char adress[64];
@@ -176,7 +181,6 @@ void saveClients(Client *clienti)
         perror("error opening file");
         return;
     }
-
     for (int i = 0; i < NR_CLIENTS; i++)
     {
         write(fd, clienti[i].MailAdress, strlen(clienti[i].MailAdress));
@@ -214,6 +218,7 @@ void handle_client(int client_socket)
 
     close(client_socket);
 }
+
 
 /*
 flag:
@@ -435,3 +440,4 @@ void saveMails(Mail *mails)
     }
     close(fd);
 }
+

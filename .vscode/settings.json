@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "mail_server.h": "c",
+        "typeinfo": "c"
+    }
+}

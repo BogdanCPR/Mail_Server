@@ -40,6 +40,14 @@ struct _mail{
 };
 typedef struct _mail Mail;
 
+// Client 
+
+int show_login_register(char** mail, char** password);
+int show_menu(char* mail, char* password);
+
+void clear_console();
+
+// Server
 Client* addClient(Client* clients, char* mailAdress, char* name);
 Client* removeClient(Client* clients, char* mailAdress);
 

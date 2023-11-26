@@ -2,8 +2,8 @@
 
 int main(int argc, char* argv[])
 {
-    srand(time(NULL));
-	int status, valread, client_fd;
+
+	/*int status, valread, client_fd;
 	struct sockaddr_in serv_addr;
 	char* hello = "Hello from client";
 	char buffer[1024] = { 0 };
@@ -25,11 +25,35 @@ int main(int argc, char* argv[])
 	if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
 		printf("\nConnection Failed \n");
 		return -1;
-	}
+
+	}*/
 
     //AICI POTI TRIMITE COMENZI///
 
+
+	// MENU ----------------------------------------------------------------
+	clear_console();
+
+	while(1)
+	{
+		char* _mail = (char*)malloc(sizeof(char) * 30);
+		char* _password = (char*)malloc(sizeof(char) * 20);
+
+		if (show_login_register(&_mail, &_password))
+		{
+			int aux = 1;
+			while (aux)
+			{
+				aux = show_menu(_mail, _password);		
+			}
+			
+		}
+	}
+
+	// ---------------------------------------------------------------------
+
 	// closing the connected socket
-	close(client_fd);
+	//close(client_fd);
+
 	return 0;
 }
