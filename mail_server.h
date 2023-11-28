@@ -44,8 +44,11 @@ typedef struct _mail Mail;
 
 int show_login_register(char** mail, char** password);
 int show_menu(char* mail, char* password);
+int connect_to_server(char* ip);
 
 void clear_console();
+void press_enter_to_continue();
+void set_client_fd(int fd);
 
 // Server
 Client* addClient(Client* clients, char* mailAdress, char* name);

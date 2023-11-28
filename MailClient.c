@@ -1,5 +1,61 @@
 #include "mail_server.h"
 
+#define BUF_SIZE 100
+
+int client_fd;
+int session_id;
+
+void send_message(int cfd, char *message) 
+{
+    int bytes_sent;
+
+    // Send the message to the server
+    bytes_sent = send(cfd, message, strlen(message), 0);
+
+    if (bytes_sent < 0) 
+    {
+        perror("Error sending message");
+    } else {
+        printf("Message sent successfully: %s\n", message);
+    }
+}
+
+char* receive_response(int cfd) 
+{
+    char* buf = (char*)malloc(sizeof(char) * BUF_SIZE);
+
+    if (buf == NULL) 
+    {
+        perror("Memory allocation error");
+        return NULL;
+    }
+
+    // Primește răspunsul de la server
+    int bytes_received = recv(cfd, buf, BUF_SIZE - 1, 0);
+
+    if (bytes_received < 0) 
+    {
+        perror("Recv failed");
+        free(buf);
+        return NULL;
+    } else 
+    if (bytes_received == 0) 
+    {
+        printf("Server disconnected\n");
+        free(buf);
+        return NULL;
+    } else 
+    {
+        buf[bytes_received] = '\0';
+        printf("Received response from server: %s\n", buf);
+        return buf;
+    }
+}
+
+void set_client_fd(int fd)
+{
+    client_fd = fd;
+}
 
 void clear_console()
 {
@@ -35,7 +91,37 @@ int login_client(char** mail, char** password)
     get_user_input(_mail, sizeof(_mail), "Mail: ");
     get_user_input(_password, sizeof(_password), "Password: ");
 
-    if (strcmp(_mail, "1") == 0 && strcmp(_password, "1") == 0)
+    // TODO
+    char msg[BUF_SIZE];
+    strcpy(msg, "LG/");
+    strcat(msg, _mail);
+    strcat(msg, "/");
+    strcat(msg, _password);
+
+    send_message(client_fd, msg);
+
+    char* response = receive_response(client_fd);
+
+    if (response != NULL) 
+    {
+        if (response[0] != '0')
+        {
+            session_id = atoi(response);
+            strcpy(*mail, _mail);
+            strcpy(*password, _password);
+            free(response);
+            return 1;
+        } else
+        if (response[0] == '0')
+        {
+            free(response);
+            return 0;
+        }
+    }
+
+    return -1;
+
+    /*if (strcmp(_mail, "1") == 0 && strcmp(_password, "1") == 0)
     {  
         strcpy(*mail, _mail);
         strcpy(*password, _password);
@@ -43,10 +129,10 @@ int login_client(char** mail, char** password)
         return 1;
     }
     else
-        return 0;
+        return 0;*/
 }
 
-void register_client()
+int register_client()
 {
     char _mail[30];
     char _password[20];
@@ -58,6 +144,32 @@ void register_client()
     // TODO
     printf("Clientul: %s, %s \n", _mail, _password);
 
+    // TODO
+    char msg[BUF_SIZE];
+    strcpy(msg, "RG/");
+    strcat(msg, _mail);
+    strcat(msg, "/");
+    strcat(msg, _password);
+
+    send_message(client_fd, msg);
+
+    char* response = receive_response(client_fd);
+
+    if (response != NULL)
+    {
+        if (response[0] == '1')
+        {
+            free(response);
+            return 1;
+        } else
+        if (response[0] == '0')
+        {
+            free(response);
+            return 0;
+        }
+    }
+
+    return -1;
 }
 
 int show_login_register(char** mail, char** password)
@@ -85,14 +197,14 @@ int show_login_register(char** mail, char** password)
         {
             printf("Login Successful\n");
             sleep(1);
-            clear_console();
+            //clear_console();
             return 1;
         }
         else
         {
             printf("Invalid Data\n");
             sleep(1);
-            clear_console();
+            //clear_console();
             return 0;
         }
 
@@ -102,7 +214,11 @@ int show_login_register(char** mail, char** password)
 
         printf("========== Register... ==========\n");
 
-        register_client();
+        if (register_client())
+            printf("Registration successful!\n");
+        else
+            printf("Registration failed. Please try again.\n");
+
         sleep(1);
 
         break;
@@ -141,38 +257,57 @@ void write_email()
     printf("Content: %s\n", content);
 }
 
-void display_all_mails(const char *mails) 
+void display_mail(int MailId, char* SenderAddress, char* ReceiverAddress, char* Subject, char* Message)
 {
+    printf("------------------------------------------------------\n");
+    printf("Mail ID: %d\n", MailId);
+    printf("Sender Address: %s\n", SenderAddress);
+    printf("Receiver Address: %s\n", ReceiverAddress);
+    printf("Subject: %s\n", Subject);
+    printf("Content: %s\n", Message);
+    printf("------------------------------------------------------\n\n");
+}
+
+void display_mails(const char *mails, char* mail, int type)         // type: 0 -> toate mailurile | 1 -> mailurile trimise
+{                                                                       // 2 -> mailurile primite
     char *token;
     char *str = strdup(mails);
     token = strtok(str, "~");
 
-    while (token != NULL) {
-        Mail mail;
+    while (token != NULL) 
+    {
+        Mail _mail;
+        _mail.Subject = malloc(100 * sizeof(char));
+        _mail.Message = malloc(500 * sizeof(char));
+        _mail.SenderAddress = malloc(100 * sizeof(char));
+        _mail.ReceiverAddress = malloc(100 * sizeof(char));
 
-        mail.Subject = malloc(100 * sizeof(char));
-        mail.Message = malloc(500 * sizeof(char));
-        mail.SenderAddress = malloc(100 * sizeof(char));
-        mail.ReceiverAddress = malloc(100 * sizeof(char));
-
-        if (mail.Subject == NULL || mail.Message == NULL ||
-            mail.SenderAddress == NULL || mail.ReceiverAddress == NULL) 
+        if (_mail.Subject == NULL || _mail.Message == NULL ||
+            _mail.SenderAddress == NULL || _mail.ReceiverAddress == NULL) 
         {
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }
 
         sscanf(token, "%d/%99[^/]/%99[^/]/%99[^/]/%499[^~]",
-               &mail.MailId, mail.SenderAddress, mail.ReceiverAddress,
-               mail.Subject, mail.Message);
+               &_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress,
+               _mail.Subject, _mail.Message);
 
-        printf("------------------------------------------------------\n");
-        printf("Mail ID: %d\n", mail.MailId);
-        printf("Sender Address: %s\n", mail.SenderAddress);
-        printf("Receiver Address: %s\n", mail.ReceiverAddress);
-        printf("Subject: %s\n", mail.Subject);
-        printf("Content: %s\n", mail.Message);
-        printf("------------------------------------------------------\n\n");
+        if (type == 0)
+        {
+            display_mail(_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress, 
+                _mail.Subject, _mail.Message);
+        } else
+        if (type == 1 && strcmp(_mail.SenderAddress, mail) == 0)
+        {
+            display_mail(_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress, 
+                _mail.Subject, _mail.Message);
+        } else
+        if (type == 2 && strcmp(_mail.ReceiverAddress, mail) == 0)
+        {
+            display_mail(_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress, 
+                _mail.Subject, _mail.Message);
+        }
 
         token = strtok(NULL, "~");
     }
@@ -249,11 +384,13 @@ int delete_mail()
 int show_menu(char* mail, char* password)
 {
     printf("********** Main Menu **********\n");
-    printf("1. View emails\n");
-    printf("2. Write email\n");
-    printf("3. Delete account\n");
-    printf("4. Go back\n");
-    printf("Enter your choice: ");
+    printf("1. View all emails\n");
+    printf("2. View sent emails\n");
+    printf("3. View received emails\n");
+    printf("4. Write email\n");
+    printf("5. Delete account\n");
+    printf("6. Go back\n");
+    printf("\nEnter your choice: ");
 
     char* _mail;
     char* _password;
@@ -269,15 +406,37 @@ int show_menu(char* mail, char* password)
     case 1:
         clear_console();
 
-        printf("Viewing emails...\n");
+        printf("Viewing all emails...\n");
 
         const char *mails = "1/sender1@example.com/receiver1@example.com/Subject 1/Content 1~2/sender2@example.com/receiver2@example.com/Subject 2/Content 2";
-        display_all_mails(mails);
+        display_mails(mails, _mail, 0);
         delete_mail();
         press_enter_to_continue();
 
         break;
     case 2:
+        clear_console();
+
+        printf("Viewing sent emails...\n");
+
+        const char *mails1 = "1/1/receiver1@example.com/Subject 1/Content 1~2/sender2@example.com/receiver2@example.com/Subject 2/Content 2";
+        display_mails(mails1, _mail, 1);
+        delete_mail();
+        press_enter_to_continue();
+
+        break;
+    case 3:
+        clear_console();
+
+        printf("Viewing received emails...\n");
+
+        const char *mails2 = "1/sender1@example.com/1/Subject 1/Content 1~2/sender2@example.com/receiver2@example.com/Subject 2/Content 2";
+        display_mails(mails2, _mail, 2);
+        delete_mail();
+        press_enter_to_continue();
+
+        break;
+    case 4:
         clear_console();
 
         printf("Writing email...\n");
@@ -286,7 +445,7 @@ int show_menu(char* mail, char* password)
         press_enter_to_continue();
 
         break;
-    case 3:
+    case 5:
         clear_console();
 
         printf("Delete account...\n");
@@ -302,7 +461,7 @@ int show_menu(char* mail, char* password)
         press_enter_to_continue();
 
         break;
-    case 4:
+    case 6:
         clear_console();
 
         return 0;
@@ -316,4 +475,39 @@ int show_menu(char* mail, char* password)
     clear_console();
 
     return 1;
+}
+
+int connect_to_server(char* ip)
+{
+    int status, valread, cfd;
+	struct sockaddr_in serv_addr;
+	char *hello = "Hello from client";
+	char buffer[1024] = {0};
+
+	if ((cfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		printf("\n Socket creation error \n");
+		return -1;
+	}
+
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(PORT);
+
+	// Convert IPv4 and IPv6 addresses from text to binary
+	// form
+	if (inet_pton(AF_INET, ip, &serv_addr.sin_addr) <= 0)
+	{
+		printf("\nInvalid address/ Address not supported \n");
+		return -1;
+	}
+
+	if ((status = connect(cfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+	{
+		printf("\nConnection Failed \n");
+		return -1;
+	}
+
+    printf("Connection Successful!\n");
+
+    return cfd;
 }
