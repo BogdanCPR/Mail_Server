@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
+#include <pthread.h>
 
 #define PORT 55555
 #define MAX_MESSAGE_SIZE 4096
@@ -25,6 +26,7 @@ extern int NR_CLIENTS;
 extern int NR_MAILS;
 
 struct _client{
+    int sessionID;
     char* MailAdress;
     char* Password;
 };
@@ -57,7 +59,7 @@ Client* removeClient(Client* clients, char* mailAdress);
 void loadClients(Client** clients);
 void saveClients(Client* clients);
 
-void handle_client(int client_socket);
+int handle_client(int client_socket, Client* clients);
 
 Mail* addMail(Mail* mails, char* subject, char* message, char* senderAddress, char* receiverAddress, int flag, int id);
 Mail* removeMail(Mail* mails,int mailId, int action);
