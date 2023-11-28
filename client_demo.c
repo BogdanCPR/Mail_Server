@@ -1,13 +1,14 @@
 #include "mail_server.h"
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 
-	/*int status, valread, client_fd;
+	int status, valread, client_fd;
 	struct sockaddr_in serv_addr;
-	char* hello = "Hello from client";
-	char buffer[1024] = { 0 };
-	if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	char *hello = "Hello from client";
+	char buffer[1024] = {0};
+	if ((client_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
 		printf("\n Socket creation error \n");
 		return -1;
 	}
@@ -16,44 +17,53 @@ int main(int argc, char* argv[])
 
 	// Convert IPv4 and IPv6 addresses from text to binary
 	// form
-	if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+	if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0)
+	{
 		printf(
 			"\nInvalid address/ Address not supported \n");
 		return -1;
 	}
 
-	if ((status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))) < 0) {
+	if ((status = connect(client_fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))) < 0)
+	{
 		printf("\nConnection Failed \n");
 		return -1;
+	}
 
-	}*/
+	// AICI POTI TRIMITE COMENZI///
+	// send(client_fd, hello, strlen(hello), 0);
+	// int message_len = recv(client_fd, buffer, MAX_MESSAGE_SIZE, 0);
+	// buffer[message_len]='\0';
+	// printf("%s\n",buffer);
+	// while(1)
+	// {
 
-    //AICI POTI TRIMITE COMENZI///
-
+	// }
+	// close(client_fd);
+	// return 0;
 
 	// MENU ----------------------------------------------------------------
-	clear_console();
+	// clear_console();
 
-	while(1)
+	while (1)
 	{
-		char* _mail = (char*)malloc(sizeof(char) * 30);
-		char* _password = (char*)malloc(sizeof(char) * 20);
+		char *_mail = (char *)malloc(sizeof(char) * 30);
+		char *_password = (char *)malloc(sizeof(char) * 20);
 
 		if (show_login_register(&_mail, &_password))
 		{
 			int aux = 1;
 			while (aux)
 			{
-				aux = show_menu(_mail, _password);		
+				aux = show_menu(_mail, _password);
 			}
-			
 		}
 	}
 
 	// ---------------------------------------------------------------------
 
 	// closing the connected socket
-	//close(client_fd);
+	// close(client_fd);
 
 	return 0;
 }
