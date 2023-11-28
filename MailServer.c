@@ -96,9 +96,6 @@ int generateRandomID()
     close(fd);
 }
 
-
-
-
 Client *addClient(Client *clienti, char *mailAdress, char *password)
 {
     NR_CLIENTS++;
@@ -118,7 +115,6 @@ Client *addClient(Client *clienti, char *mailAdress, char *password)
     return AUX;
 }
 
-
 void loadClients(Client **clienti)
 {
     int fd = open("clients.db", O_RDONLY);
@@ -127,7 +123,6 @@ void loadClients(Client **clienti)
         perror("error opening file");
         return;
     }
-
 
     char buf[1024];
     char adress[64];
@@ -194,34 +189,71 @@ void saveClients(Client *clienti)
 
     close(fd);
 }
+//rethink it;;;;;;;;
+int validate_client(char *client_message, int client_socket, Client* clients)
+{
+    char *commandIdentifier = strtok(client_message, "/");
+    char *command = strtok(NULL, "~");
+    if (!strcmp(commandIdentifier, "LG"))
+    {
+        char* mail = strtok(command,"/");
+        char* password = strtok(NULL,"\0");
+        for(int i=0;i<NR_CLIENTS;i++)
+        {
+            if(!strcmp(mail,clients[i].MailAdress) && !strcmp(password,clients[i].Password))
+            {
+                //log login success
+                int sessionId = rand()%10000;
+                clients[i].sessionID = sessionId;
+                return sessionId;
+            }
+        }
+        return 0;
+    }
+    if (!strcmp(commandIdentifier, "RG"))
+    {
+        char* mail = strtok(command,"/");
+        char* password = strtok(NULL,"\0");
+        for(int i=0;i<NR_CLIENTS;i++)
+        {
+            if(!strcmp(mail,clients[i].MailAdress))
+            {
+                //log address already exists
+                return 0;
+            }
+        }
+        addClient(clients, mail, password);
+        return 0;
+    }
+    return -1;
+}
 
-void handle_client(int client_socket)
+int handle_client(int client_socket, Client* clients)
 {
     char buffer[MAX_MESSAGE_SIZE];
     int message_len;
-
+    printf("CLIENT FD %d\n", client_socket);
     while (1)
     {
         message_len = recv(client_socket, buffer, MAX_MESSAGE_SIZE, 0);
-
         if (message_len <= 0)
         {
             printf("Client disconnected.\n");
             break;
         }
+        buffer[message_len] = '\0';
+        int returnCode = validate_client(buffer,client_socket, clients);
+        if(returnCode == -1)
+        {
+            close(client_socket);
+            return -1;
+        }
 
-        buffer[message_len] = '\0'; // Add null terminator to treat received data as string
 
-        // Process the message (e.g., check recipient, format, etc.)
-        printf("Received message: %s\n", buffer);
-
-        // Assuming the message is valid, forward it to the client application
-        send(client_socket, buffer, strlen(buffer), 0);
     }
-
     close(client_socket);
+    return 1;
 }
-
 
 /*
 flag:
@@ -443,4 +475,3 @@ void saveMails(Mail *mails)
     }
     close(fd);
 }
-
