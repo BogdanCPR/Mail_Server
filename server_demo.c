@@ -3,11 +3,11 @@
 #define THREAD_NUM 8
 #define MAX_CLIENTS 256
 
-
-typedef struct _task {
-    int (*taskfunction)(int, Client *);
+typedef struct _task
+{
+    int (*taskfunction)(int, Client **);
     int arg1;
-    Client* arg2;
+    Client **arg2;
 } Task;
 Task clientQueue[256];
 int clientCount = 0;
@@ -15,8 +15,9 @@ int clientCount = 0;
 pthread_mutex_t mutexQueue;
 pthread_cond_t condQueue;
 
-void executeTask(Task* task){
-    task->taskfunction(task->arg1,task->arg2);
+void executeTask(Task *task)
+{
+    task->taskfunction(task->arg1, task->arg2);
 }
 
 void addClientToQueue(Task client)
@@ -28,7 +29,7 @@ void addClientToQueue(Task client)
     pthread_cond_signal(&condQueue);
 }
 
-void *startThread(void *args)
+void *startThread()
 {
     while (1)
     {
@@ -59,15 +60,17 @@ int main()
     Client *clients = NULL;
     Mail *mails = NULL;
 
-    // loadClients(&clients);
-    // loadMails(&mails);
+    /// NU VREA SA APELEZE FUNCTIIIIILEEEEEEEEEEE BAAAAA////
 
-    // mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
-    // mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
-    // mails = removeMail(mails, 30886,ACTION_RM_RECEIVER);
-    // saveMails(mails);
-    // saveClients(clients);
-    // return(0);
+    loadClients(&clients);
+    loadMails(&mails);
+
+    //  mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
+    //  mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
+    //  mails = removeMail(mails, 30886,ACTION_RM_RECEIVER);
+    //  saveMails(mails);
+    //  saveClients(clients);
+    //  return(0);
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -97,8 +100,7 @@ int main()
         Task t = {
             .taskfunction = &handle_client,
             .arg1 = client_socket,
-            .arg2 = clients
-        };
+            .arg2 = &clients};
         addClientToQueue(t);
     }
 
