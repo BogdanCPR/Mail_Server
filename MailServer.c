@@ -94,11 +94,13 @@ int generateRandomID()
         return 0;
     }
     close(fd);
+    return ID;
 }
 
 Client *addClient(Client *clienti, char *mailAdress, char *password)
 {
     NR_CLIENTS++;
+    printf("NUMARUL CLIENTOLOR A CRESCUT LA %d\n",NR_CLIENTS);
     Client *AUX = (Client *)malloc(NR_CLIENTS * sizeof(Client));
     for (int i = 0; i < NR_CLIENTS - 1; i++)
     {
@@ -189,50 +191,83 @@ void saveClients(Client *clienti)
 
     close(fd);
 }
-//rethink it;;;;;;;;
-int validate_client(char *client_message, int client_socket, Client* clients)
+
+int request_login(char *request, int client_socket, Client **clients)
 {
-    char *commandIdentifier = strtok(client_message, "/");
-    char *command = strtok(NULL, "~");
-    if (!strcmp(commandIdentifier, "LG"))
+    char *mail = strtok(request, "/");
+    char *password = strtok(NULL, "~");
+    printf("Clients's creditentials for login:\nMail: %s\nPassword: %s\n", mail, password);
+    for (int i = 0; i < NR_CLIENTS; i++)
     {
-        char* mail = strtok(command,"/");
-        char* password = strtok(NULL,"\0");
-        for(int i=0;i<NR_CLIENTS;i++)
+        if (!strcmp(mail, (*clients)[i].MailAdress) && !strcmp(password, (*clients)[i].Password))
         {
-            if(!strcmp(mail,clients[i].MailAdress) && !strcmp(password,clients[i].Password))
+            // log login success
+            int sessionId = (rand() % 90000) + 10000;
+            (*clients)[i].sessionID = sessionId;
+            char *SSID_string;
+            itoa(sessionId, &SSID_string);
+            int bytesSend = send(client_socket, SSID_string, 5, 0);
+            if (bytesSend < 1)
             {
-                //log login success
-                int sessionId = rand()%10000;
-                clients[i].sessionID = sessionId;
-                return sessionId;
+                perror("error sending reply");
+                exit(0);
             }
+            printf("Client successfully loged in with the session id: %s\n", SSID_string);
+            return 1;
         }
-        return 0;
     }
-    if (!strcmp(commandIdentifier, "RG"))
+    // creditentals were incorrect
+    int bytesSend = send(client_socket, "0", 1, 0);
+    if (bytesSend < 1)
     {
-        char* mail = strtok(command,"/");
-        char* password = strtok(NULL,"\0");
-        for(int i=0;i<NR_CLIENTS;i++)
-        {
-            if(!strcmp(mail,clients[i].MailAdress))
-            {
-                //log address already exists
-                return 0;
-            }
-        }
-        addClient(clients, mail, password);
-        return 0;
+        perror("error sending reply");
+        exit(0);
     }
-    return -1;
+    printf("Client's creditentials were incorect.\n");
+    return 0;
 }
 
-int handle_client(int client_socket, Client* clients)
+int request_register(char *request, int client_socket, Client **clients)
+{
+    char *mail = strtok(request, "/");
+    char *password = strtok(NULL, "~");
+    printf("Clients's creditentials for register:\nMail: %s\nPassword: %s\n", mail, password);
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        printf("ITERATIE\n");
+        if (!strcmp(mail, (*clients)[i].MailAdress))
+        {
+            int bytesSend = send(client_socket, "0", 1, 0);
+            if (bytesSend < 1)
+            {
+                perror("error sending reply");
+                exit(0);
+            }
+            printf("Client introduced an email that already exists");
+            return 1;
+        }
+    }
+    *clients = addClient(*clients, mail, password);
+    if (clients == NULL)
+    {
+        perror("error adding client");
+        exit(0);
+    }
+    int bytesSend = send(client_socket, "1", 1, 0);
+    if (bytesSend < 1)
+    {
+        perror("error sending reply");
+        exit(0);
+    }
+    printf("Client successfully created an account.\n");
+    return 0;
+}
+
+int handle_client(int client_socket, Client **clients)
 {
     char buffer[MAX_MESSAGE_SIZE];
     int message_len;
-    printf("CLIENT FD %d\n", client_socket);
+    printf("clients's file descriptor: %d\n", client_socket);
     while (1)
     {
         message_len = recv(client_socket, buffer, MAX_MESSAGE_SIZE, 0);
@@ -241,15 +276,42 @@ int handle_client(int client_socket, Client* clients)
             printf("Client disconnected.\n");
             break;
         }
-        buffer[message_len] = '\0';
-        int returnCode = validate_client(buffer,client_socket, clients);
-        if(returnCode == -1)
+        buffer[message_len] = '~';
+
+        char *requestType = strtok(buffer, "/");
+        char *requestBody = strtok(NULL, "~");
+
+        if (!strcmp(requestType, "LG"))
         {
-            close(client_socket);
-            return -1;
+            printf("Client requested to log in\n");
+            request_login(requestBody, client_socket, clients);
         }
-
-
+        else if (!strcmp(requestType, "RG"))
+        {
+            printf("Client requested to register\n");
+            request_register(requestBody, client_socket, clients);
+        }
+        else if (!strcmp(requestType, "SM"))
+        {
+            printf("Client requested to send a mail\n");
+        }
+        else if (!strcmp(requestType, "RM"))
+        {
+            printf("Client requested to receive his mails\n");
+        }
+        else if (!strcmp(requestType, "DM"))
+        {
+            printf("Client requested to delete a mail\n");
+        }
+        else if (!strcmp(requestType, "DA"))
+        {
+            printf("Client requested to delete his account\n");
+        }
+        else
+        {
+            printf("Client sent an unknown request");
+        }
+        strcpy(buffer,"\0");
     }
     close(client_socket);
     return 1;
