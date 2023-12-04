@@ -481,7 +481,6 @@ int connect_to_server(char* ip)
 {
     int status, valread, cfd;
 	struct sockaddr_in serv_addr;
-	char buffer[1024] = {0};
 
 	if ((cfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
