@@ -18,10 +18,10 @@ lib_mail.so : MailServer_shared.o MailClient_shared.o
 	gcc -shared MailServer_shared.o MailClient_shared.o -o lib_mail.so
 
 Server_Demo : server_demo.c lib_mail.so
-	gcc server_demo.c -o Server_Demo lib_mail.so -L . -Wl,-rpath=.
+	gcc -g server_demo.c -o Server_Demo lib_mail.so -L . -Wl,-rpath=.
 
 Client_Demo : client_demo.c lib_mail.so
-	gcc client_demo.c -o Client_Demo lib_mail.so -L . -Wl,-rpath=.
+	gcc -g client_demo.c -o Client_Demo lib_mail.so -L . -Wl,-rpath=.
 
 clean:
 	rm *.o *.so
