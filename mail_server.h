@@ -59,7 +59,7 @@ Client* removeClient(Client* clients, char* mailAdress);
 void loadClients(Client** clients);
 void saveClients(Client* clients);
 
-int handle_client(int client_socket, Client* clients);
+int handle_client(int client_socket, Client **clients);
 
 Mail* addMail(Mail* mails, char* subject, char* message, char* senderAddress, char* receiverAddress, int flag, int id);
 Mail* removeMail(Mail* mails,int mailId, int action);

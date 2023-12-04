@@ -1,0 +1,28 @@
+all: Server_Demo Client_Demo
+
+.PHONY: clean resetDB
+
+MailServer.o: MailServer.c mail_server.h
+	gcc -Wall -c MailServer.c -o MailServer.o
+
+MailClient.o: MailClient.c mail_server.h
+	gcc -Wall -c MailClient.c -o MailClient.o
+
+server_demo.o: server_demo.c mail_server.h
+	gcc -Wall -c server_demo.c -o server_demo.o
+
+client_demo.o: client_demo.c mail_server.h
+	gcc -Wall -c client_demo.c -o client_demo.o
+
+Server_Demo: server_demo.o MailServer.o
+	gcc server_demo.o MailServer.o -o Server_Demo
+
+Client_Demo: client_demo.o MailClient.o
+	gcc client_demo.o MailClient.o -o Client_Demo
+
+clean:
+	rm -f *.o Server_Demo Client_Demo
+
+resetDB:
+	rm -f *.db
+	touch clients.db mails.db ids.db
