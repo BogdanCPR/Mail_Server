@@ -10,6 +10,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define PORT 55555
 #define MAX_MESSAGE_SIZE 4096
@@ -59,7 +60,7 @@ Client* removeClient(Client* clients, char* mailAdress);
 void loadClients(Client** clients);
 void saveClients(Client* clients);
 
-int handle_client(int client_socket, Client **clients);
+int handle_client(int client_socket, Client **clients, Mail **mails);
 
 Mail* addMail(Mail* mails, char* subject, char* message, char* senderAddress, char* receiverAddress, int flag, int id);
 Mail* removeMail(Mail* mails,int mailId, int action);
