@@ -102,11 +102,30 @@ void clear_console()
     #endif
 }
 
+void displayLoadingAnimation() 
+{
+    int duration = 2; // Durata animației în secunde
+    int frames = 4;   // Numărul de cadre în animație
+    char animation[] = {'|', '/', '-', '\\'};
+
+    for (int i = 0; i < duration; i++) {
+        for (int j = 0; j < frames; j++) {
+            printf("\r%c Loading... ", animation[j]);
+            fflush(stdout);
+            usleep(100000); // Pauza de 100ms între cadre (poate fi ajustată)
+        }
+    }
+
+    printf("\rDone!        \n"); // Mesajul de final
+}
+
 void press_enter_to_continue() 
 {
     printf("\nPress enter to continue...");
     fflush(stdout);
     while (getchar() != '\n');
+
+    displayLoadingAnimation();
 }
 
 void get_user_input(char *input, int size, const char *prompt)
@@ -214,10 +233,11 @@ int show_login_register(char** mail, char** password)
     clear_console();
 
     printf("********** Welcome to Mail Application! **********\n");
-    printf("1. Login\n");
-    printf("2. Register\n");
-    printf("3. Exit\n");
-    printf("Enter your choice: ");
+    printf("*  1. Login                                      *\n");
+    printf("*  2. Register                                   *\n");
+    printf("*  3. Exit                                       *\n");
+    printf("**************************************************\n");
+    printf("\nEnter your choice: ");
     
     int choice;
     scanf("%d", &choice);
@@ -228,20 +248,20 @@ int show_login_register(char** mail, char** password)
     case 1:
         clear_console();
 
-        printf("========== Login... ==========\n");
+        printf("==================== Login... ====================\n");
 
         if (login_client(mail, password))
         {
             printf("Login Successful\n");
-            sleep(1);
-            //clear_console();
+            displayLoadingAnimation();
+            clear_console();
             return 1;
         }
         else
         {
             printf("Invalid Data\n");
-            sleep(1);
-            //clear_console();
+            press_enter_to_continue();
+            clear_console();
             return 0;
         }
 
@@ -249,20 +269,24 @@ int show_login_register(char** mail, char** password)
     case 2:
         clear_console();
 
-        printf("========== Register... ==========\n");
+        printf("================== Register... ===================\n");
 
         if (register_client())
+        {
             printf("Registration successful!\n");
+            displayLoadingAnimation();
+        }    
         else
+        {
             printf("Registration failed. Please try again.\n");
-
-        sleep(1);
-
+            press_enter_to_continue();
+        }
+        
         break;
     case 3:
         clear_console();
 
-        printf("========== Exit ==========\n");
+        printf("====================== Exit ======================\n");
         exit(EXIT_SUCCESS);
 
         break;
@@ -543,13 +567,14 @@ int delete_mail(char* mail)
 
 int show_menu(char* mail, char* password)
 {
-    printf("********** Main Menu **********\n");
-    printf("1. View all emails\n");
-    printf("2. View sent emails\n");
-    printf("3. View received emails\n");
-    printf("4. Write email\n");
-    printf("5. Delete account\n");
-    printf("6. Go back\n");
+    printf("******************* Main Menu! *******************\n");
+    printf("*  1. View all emails                            *\n");
+    printf("*  2. View sent emails                           *\n");
+    printf("*  3. View received emails                       *\n");
+    printf("*  4. Write email                                *\n");
+    printf("*  5. Delete account                             *\n");
+    printf("*  6. Go back                                    *\n");
+    printf("**************************************************\n");
     printf("\nEnter your choice: ");
 
     int choice;
