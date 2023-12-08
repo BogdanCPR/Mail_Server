@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include "mail_server.h"
 
 #define THREAD_NUM 8
@@ -5,9 +6,10 @@
 
 typedef struct _task
 {
-    int (*taskfunction)(int, Client **);
+    int (*taskfunction)(int, Client **, Mail **);
     int arg1;
     Client **arg2;
+    Mail **arg3;
 } Task;
 Task clientQueue[256];
 int clientCount = 0;
@@ -15,9 +17,19 @@ int clientCount = 0;
 pthread_mutex_t mutexQueue;
 pthread_cond_t condQueue;
 
+int running = 1;
+void sig_handler(int signum)
+{
+    if (signum == SIGINT)
+    {
+        running = 0;
+        printf("\nSERVER CLOSING...\n");
+    }
+}
+
 void executeTask(Task *task)
 {
-    task->taskfunction(task->arg1, task->arg2);
+    task->taskfunction(task->arg1, task->arg2, task->arg3);
 }
 
 void addClientToQueue(Task client)
@@ -31,10 +43,10 @@ void addClientToQueue(Task client)
 
 void *startThread()
 {
-    while (1)
+    while (running)
     {
         pthread_mutex_lock(&mutexQueue);
-        while (clientCount == 0)
+        while (clientCount == 0 && running)
         {
             pthread_cond_wait(&condQueue, &mutexQueue);
         }
@@ -48,6 +60,7 @@ void *startThread()
         pthread_mutex_unlock(&mutexQueue);
         executeTask(&client);
     }
+    printf("Closing thread...\n");
 }
 
 int main()
@@ -60,17 +73,20 @@ int main()
     Client *clients = NULL;
     Mail *mails = NULL;
 
-    /// NU VREA SA APELEZE FUNCTIIIIILEEEEEEEEEEE BAAAAA////
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_flags = SA_RESETHAND;
+    sa.sa_handler = sig_handler;
+    sigaction(SIGINT, &sa, NULL);
 
     loadClients(&clients);
     loadMails(&mails);
 
-    //  mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
-    //  mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
-    //  mails = removeMail(mails, 30886,ACTION_RM_RECEIVER);
-    //  saveMails(mails);
-    //  saveClients(clients);
-    //  return(0);
+    //   mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
+    //   mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
+    //   saveMails(mails);
+    //   saveClients(clients);
+    //   return(0);
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -92,27 +108,35 @@ int main()
 
     listen(server_socket, MAX_CLIENTS);
     printf("Server listening on port %d...\n", PORT);
-    while (1)
+    while (running)
     {
         // Accept connection
         client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &addr_len);
-        printf("New connection accepted, client socket file descriptor = %d\n", client_socket);
-        Task t = {
-            .taskfunction = &handle_client,
-            .arg1 = client_socket,
-            .arg2 = &clients};
-        addClientToQueue(t);
+        if (client_socket != -1)
+        {
+            printf("New connection accepted, client socket file descriptor = %d\n", client_socket);
+            Task t = {
+                .taskfunction = &handle_client,
+                .arg1 = client_socket,
+                .arg2 = &clients,
+                .arg3 = &mails};
+            addClientToQueue(t);
+        }
     }
-
+    printf("A iesit din while MAIN THREAD\n");
     for (int i = 0; i < THREAD_NUM; i++)
     {
         if (pthread_join(threads[i], NULL) != 0)
         {
             perror("Fail to join the thread");
         }
+        printf("THREADUL %d a dat join\n",i);
     }
     pthread_mutex_destroy(&mutexQueue);
     pthread_cond_destroy(&condQueue);
+
+    saveClients(clients);
+    saveMails(mails);
     close(server_socket);
     return 0;
 }
