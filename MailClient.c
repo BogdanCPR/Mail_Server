@@ -332,9 +332,10 @@ void write_email(char* mail)
     strcat(_mail, "/");
     strcat(_mail, _newMail.Message);
 
-    char _msg[BUF_SIZE];
-    snprintf(_msg, sizeof(_msg), "%d", session_id);
-    strcat(_msg, "/WR");
+    char _msg[BUF_SIZE] = "WR/";
+    char _session_string[10];
+    snprintf(_session_string, sizeof(_session_string), "%d", session_id);
+    strcat(_msg, _session_string);
     strcat(_msg, _mail);
 
     //printf("\n%s\n", _msg);
@@ -372,7 +373,6 @@ void get_mails()
     strcat(_msg, _mail);
 
     send_message(client_fd, _msg);
-
     _mail = receive_long_response(client_fd);
 
     //
@@ -467,9 +467,11 @@ int delete_acount(char* mail, char* password)
         printf("Your answer is: Yes\n");
 
         //TODO
-        char _msg[BUF_SIZE];
-        snprintf(_msg, sizeof(_msg), "%d", session_id);
-        strcat(_msg, "/DA/");
+        char _msg[BUF_SIZE]="DA/";
+        char _session_string[10];
+        snprintf(_session_string, sizeof(_session_string), "%d", session_id);
+        strcat(_msg, _session_string);
+        strcat(_msg,"/");
         strcat(_msg, mail);
 
         //printf("\n%s\n", _msg);
