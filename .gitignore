@@ -1,3 +1,8 @@
 
 *.json
 .vscode/settings.json
+
+*.so
+*.o
+Client_Demo
+Server_Demo
