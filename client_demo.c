@@ -11,9 +11,7 @@ int main(int argc, char *argv[])
 	{
 
 		set_client_fd(client_fd);
-		// AICI POTI TRIMITE COMENZI///
 
-		// MENU ----------------------------------------------------------------
 		clear_console();
 
 		while (1)
@@ -30,7 +28,6 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-		// ---------------------------------------------------------------------
 
 		// closing the connected socket
 		close(client_fd);

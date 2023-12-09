@@ -24,7 +24,7 @@ Client_Demo : client_demo.c lib_mail.so
 	gcc -g client_demo.c -o Client_Demo lib_mail.so -L . -Wl,-rpath=.
 
 clean:
-	rm *.o *.so
+	rm *.o *.so Server_Demo Client_Demo
 
 resetDB: 
 	rm *.db
