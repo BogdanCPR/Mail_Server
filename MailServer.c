@@ -389,6 +389,7 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
     char *mailAddress = strtok(NULL, "\0");
+    printf(">%s\n>%s", session_string, mailAddress);
     for (int i = 0; i < NR_CLIENTS; i++)
     {
         if (!strcmp((*clients)[i].MailAdress, mailAddress))
@@ -405,13 +406,16 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
                         itoa((*mails)[j].MailId, &idString);
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
                         strcat(mailsToSend, idString);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].SenderAddress) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].SenderAddress);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].ReceiverAddress) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].ReceiverAddress);
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Subject);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Message);
                         strcat(mailsToSend, "~");
@@ -469,13 +473,16 @@ int request_retrieveMailsSent(char *requestBody, int client_socket, Client **cli
                         itoa((*mails)[j].MailId, &idString);
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
                         strcat(mailsToSend, idString);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].SenderAddress) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].SenderAddress);
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].ReceiverAddress) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].ReceiverAddress);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Subject);
-                        strcat(mailsToSend, " ");
+                        strcat(mailsToSend, "/");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Message);
                         strcat(mailsToSend, "~");
