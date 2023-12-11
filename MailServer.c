@@ -100,7 +100,7 @@ int generateRandomID()
 Client *addClient(Client *clienti, char *mailAdress, char *password)
 {
     NR_CLIENTS++;
-    printf("NUMARUL CLIENTOLOR A CRESCUT LA %d\n",NR_CLIENTS);
+    printf("NUMARUL CLIENTOLOR A CRESCUT LA %d\n", NR_CLIENTS);
     Client *AUX = (Client *)malloc(NR_CLIENTS * sizeof(Client));
     for (int i = 0; i < NR_CLIENTS - 1; i++)
     {
@@ -234,7 +234,6 @@ int request_register(char *request, int client_socket, Client **clients)
     printf("Clients's creditentials for register:\nMail: %s\nPassword: %s\n", mail, password);
     for (int i = 0; i < NR_CLIENTS; i++)
     {
-        printf("ITERATIE\n");
         if (!strcmp(mail, (*clients)[i].MailAdress))
         {
             int bytesSend = send(client_socket, "0", 1, 0);
@@ -263,7 +262,323 @@ int request_register(char *request, int client_socket, Client **clients)
     return 0;
 }
 
-int handle_client(int client_socket, Client **clients)
+int request_write(char *requestBody, int client_socket, Client **clients, Mail **mails)
+{
+    char *idString = strtok(requestBody, "/");
+    int sessionId = atoi(idString);
+    char *senderAddress = strtok(NULL, "/");
+    char *receiverAddress = strtok(NULL, "/");
+    char *subject = strtok(NULL, "/");
+    char *message = strtok(NULL, "\0");
+
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp((*clients)[i].MailAdress, senderAddress))
+        {
+            if (sessionId == (*clients)[i].sessionID)
+            {
+                *mails = addMail(*mails, subject, message, senderAddress, receiverAddress, DEFAULT, -1);
+                printf("Mail sent\n");
+                send(client_socket, "1", 1, 0);
+                return 1;
+            }
+            else
+            {
+                if ((*clients)[i].sessionID != 0)
+                {
+                    printf("Incorrect session id");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+                else
+                {
+                    printf("Client not connected\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("Client not connected\n");
+    send(client_socket, "0", 1, 0);
+    return 0;
+}
+
+int deleteClientData(char *mailAddress, Client **clients, Mail **mails)
+{
+    for (int i = 0; i < NR_MAILS; i++)
+    {
+        if (!strcmp((*mails)[i].SenderAddress, mailAddress))
+        {
+            *mails = removeMail(*mails, (*mails)[i].MailId, ACTION_RM_SENDER);
+            if (*mails == NULL)
+            {
+                printf("Failed to remove mail\n");
+                return 0;
+            }
+        }
+        if (!strcmp((*mails)[i].ReceiverAddress, mailAddress))
+        {
+            *mails = removeMail(*mails, (*mails)[i].MailId, ACTION_RM_RECEIVER);
+            if (*mails == NULL)
+            {
+                printf("Failed to remove mail\n");
+                return 0;
+            }
+        }
+    }
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp(mailAddress, (*clients)[i].MailAdress))
+        {
+            *clients = removeClient(*clients, mailAddress);
+            if (*clients == NULL)
+            {
+                printf("Failed to delete account\n");
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+int request_deleteAccount(char *requestBody, int client_socket, Client **clients, Mail **mails)
+{
+    char *session_string = strtok(requestBody, "/");
+    int sessionID = atoi(session_string);
+    char *mailAddress = strtok(NULL, "\0");
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp((*clients)[i].MailAdress, mailAddress))
+        {
+            if ((*clients)[i].sessionID == sessionID)
+            {
+                int retCode = deleteClientData((*clients)[i].MailAdress, clients, mails);
+                if (retCode == 0)
+                {
+                    return 0;
+                }
+                printf("Account deleted\n");
+                send(client_socket, "1", 1, 0);
+                return 1;
+            }
+            else
+            {
+                if ((*clients)[i].sessionID == 0)
+                {
+                    printf("Client is not connected");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+                if ((*clients)[i].sessionID != sessionID)
+                {
+                    printf("Wrong session id\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("There are no clients\n");
+    send(client_socket, "0", 1, 0);
+    return 0;
+}
+
+int request_retrieveMails(char *requestBody, int client_socket, Client **clients, Mail **mails)
+{
+    char *session_string = strtok(requestBody, "/");
+    int sessionID = atoi(session_string);
+    char *mailAddress = strtok(NULL, "\0");
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp((*clients)[i].MailAdress, mailAddress))
+        {
+            if ((*clients)[i].sessionID == sessionID)
+            {
+                char *mailsToSend = (char *)malloc(1);
+                strcpy(mailsToSend, "\0");
+                for (int j = 0; j < NR_MAILS; j++)
+                {
+                    if (!strcmp((*mails)[j].ReceiverAddress, mailAddress))
+                    {
+                        char *idString;
+                        itoa((*mails)[j].MailId, &idString);
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
+                        strcat(mailsToSend, idString);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].SenderAddress) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].SenderAddress);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].Subject);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].Message);
+                        strcat(mailsToSend, "~");
+                    }
+                }
+                int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                if (bytesSend < 1)
+                {
+                    perror("error sending reply");
+                    exit(0);
+                }
+                printf("Mails sent\n");
+                return 1;
+            }
+            else
+            {
+                if ((*clients)[i].sessionID == 0)
+                {
+                    printf("Client is not connected");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+                if ((*clients)[i].sessionID != sessionID)
+                {
+                    printf("Wrong session id\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("There are no clients\n");
+    send(client_socket, "0", 1, 0);
+    return 0;
+}
+
+int request_retrieveMailsSent(char *requestBody, int client_socket, Client **clients, Mail **mails)
+{
+    char *session_string = strtok(requestBody, "/");
+    int sessionID = atoi(session_string);
+    char *mailAddress = strtok(NULL, "\0");
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp((*clients)[i].MailAdress, mailAddress))
+        {
+            if ((*clients)[i].sessionID == sessionID)
+            {
+                char *mailsToSend = (char *)malloc(1);
+                strcpy(mailsToSend, "\0");
+                for (int j = 0; j < NR_MAILS; j++)
+                {
+                    if (!strcmp((*mails)[j].SenderAddress, mailAddress))
+                    {
+                        char *idString;
+                        itoa((*mails)[j].MailId, &idString);
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
+                        strcat(mailsToSend, idString);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].ReceiverAddress) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].ReceiverAddress);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].Subject);
+                        strcat(mailsToSend, " ");
+                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
+                        strcat(mailsToSend, (*mails)[j].Message);
+                        strcat(mailsToSend, "~");
+                    }
+                }
+                int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                if (bytesSend < 1)
+                {
+                    perror("error sending reply");
+                    exit(0);
+                }
+                printf("Mails sent\n");
+                return 1;
+            }
+            else
+            {
+                if ((*clients)[i].sessionID == 0)
+                {
+                    printf("Client is not connected");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+                if ((*clients)[i].sessionID != sessionID)
+                {
+                    printf("Wrong session id\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("There are no clients\n");
+    send(client_socket, "0", 1, 0);
+    return 0;
+}
+
+int request_deleteMail(char *requestBody, int client_socket, Client **clients, Mail **mails)
+{
+    char *session_string = strtok(requestBody, "/");
+    int sessionID = atoi(session_string);
+    char *mailAddress = strtok(NULL, "/");
+    char *mailIdString = strtok(NULL, "\0");
+    int mailId = atoi(mailIdString);
+    for (int i = 0; i < NR_CLIENTS; i++)
+    {
+        if (!strcmp((*clients)[i].MailAdress, mailAddress))
+        {
+            if ((*clients)[i].sessionID == sessionID)
+            {
+                int ok=0;
+                for (int j = 0; j < NR_MAILS; j++)
+                {
+                    if((*mails)[j].MailId == mailId && !strcmp((*mails)[j].SenderAddress,mailAddress)){
+                        *mails = removeMail(*mails,mailId,ACTION_RM_SENDER);
+                        if(*mails == NULL){
+                            printf("Failed to remove mail\n");
+                            return 0;
+                        }
+                        ok=1;
+                    }
+                    if((*mails)[j].MailId == mailId && !strcmp((*mails)[j].ReceiverAddress,mailAddress)){
+                        *mails = removeMail(*mails,mailId,ACTION_RM_RECEIVER);
+                        if(*mails == NULL){
+                            printf("Failed to remove mail\n");
+                            return 0;
+                        }
+                        ok=1;
+                    }
+                }
+                if(ok){
+                    printf("Mail deleted\n");
+                    send(client_socket, "1", 1, 0);
+                    return 1;
+                }
+                else{
+                    printf("Mail not found\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+            else
+            {
+                if ((*clients)[i].sessionID == 0)
+                {
+                    printf("Client is not connected");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+                if ((*clients)[i].sessionID != sessionID)
+                {
+                    printf("Wrong session id\n");
+                    send(client_socket, "0", 1, 0);
+                    return 0;
+                }
+            }
+        }
+    }
+    printf("There are no clients\n");
+    send(client_socket, "0", 1, 0);
+    return 0;
+}
+
+int handle_client(int client_socket, Client **clients, Mail **mails)
 {
     char buffer[MAX_MESSAGE_SIZE];
     int message_len;
@@ -291,27 +606,36 @@ int handle_client(int client_socket, Client **clients)
             printf("Client requested to register\n");
             request_register(requestBody, client_socket, clients);
         }
-        else if (!strcmp(requestType, "SM"))
+        else if (!strcmp(requestType, "WR"))
         {
             printf("Client requested to send a mail\n");
+            request_write(requestBody, client_socket, clients, mails);
         }
         else if (!strcmp(requestType, "RM"))
         {
             printf("Client requested to receive his mails\n");
+            request_retrieveMails(requestBody, client_socket, clients, mails);
+        }
+        else if (!strcmp(requestType, "RMS"))
+        {
+            printf("Client requested to receive mails sent\n");
+            request_retrieveMails(requestBody, client_socket, clients, mails);
         }
         else if (!strcmp(requestType, "DM"))
         {
             printf("Client requested to delete a mail\n");
+            request_deleteMail(requestBody, client_socket, clients, mails);
         }
         else if (!strcmp(requestType, "DA"))
         {
             printf("Client requested to delete his account\n");
+            request_deleteAccount(requestBody, client_socket, clients, mails);
         }
         else
         {
             printf("Client sent an unknown request");
         }
-        strcpy(buffer,"\0");
+        strcpy(buffer, "\0");
     }
     close(client_socket);
     return 1;
@@ -527,7 +851,7 @@ void saveMails(Mail *mails)
         write(fd, " ", 1);
         write(fd, mails[i].SenderAddress, strlen(mails[i].SenderAddress));
         write(fd, " ", 1);
-        write(fd, mails[i].SenderAddress, strlen(mails[i].SenderAddress));
+        write(fd, mails[i].ReceiverAddress, strlen(mails[i].ReceiverAddress));
         write(fd, " ", 1);
         write(fd, mails[i].Subject, strlen(mails[i].Subject));
         write(fd, "\n", 1);
