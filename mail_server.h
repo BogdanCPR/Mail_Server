@@ -52,6 +52,9 @@ void clear_console();
 void press_enter_to_continue();
 void set_client_fd(int fd);
 
+char* encrypt(const char *data, int sessionID);
+char* decrypt(const char *data, int sessionID);
+
 // Server
 Client* addClient(Client* clients, char* mailAdress, char* name);
 Client* removeClient(Client* clients, char* mailAdress);

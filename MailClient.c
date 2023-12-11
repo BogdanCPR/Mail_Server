@@ -9,6 +9,40 @@ int session_id;
 Mail mails[MY_NR_MAILS];
 int my_index = 0;
 
+// Functie de criptare folosind XOR
+char* encrypt(const char *data, int sessionID) 
+{
+    size_t len = strlen(data);
+    unsigned char *sessionBytes = (unsigned char *)&sessionID;
+    
+    char *encryptedData = (char *)malloc(len + 1); // +1 pentru terminatorul nul
+
+    for (size_t i = 0; i < len; ++i) 
+    {
+        encryptedData[i] = data[i] ^ sessionBytes[i % sizeof(int)];
+    }
+    encryptedData[len] = '\0'; 
+
+    return encryptedData;
+}
+
+// Functie de decriptare folosind XOR
+char* decrypt(const char *data, int sessionID) 
+{
+    size_t len = strlen(data);
+    unsigned char *sessionBytes = (unsigned char *)&sessionID;
+
+    char *decryptedData = (char *)malloc(len + 1); // +1 pentru terminatorul nul
+
+    for (size_t i = 0; i < len; ++i) 
+    {
+        decryptedData[i] = data[i] ^ sessionBytes[i % sizeof(int)];
+    }
+    decryptedData[len] = '\0';
+
+    return decryptedData;
+}
+
 void send_message(int cfd, char *message) 
 {
     int bytes_sent;
@@ -333,8 +367,8 @@ void write_email(char* mail)
     strcat(_mail, _newMail.Message);
 
     char _msg[BUF_SIZE];
-    snprintf(_msg, sizeof(_msg), "%d", session_id);
-    strcat(_msg, "/WR");
+    snprintf(_msg, sizeof(_msg), "WR/%d/", session_id);
+    //strcat(_msg, "/WR");
     strcat(_msg, _mail);
 
     //printf("\n%s\n", _msg);
@@ -356,7 +390,7 @@ void write_email(char* mail)
     }
 }
 
-void get_mails()
+void get_mails(char* mail)
 {
     char* _mail = (char*)malloc(sizeof(char) * BUF_MAIL_SIZE);
     if (_mail == NULL)
@@ -367,9 +401,9 @@ void get_mails()
 
     char _msg[BUF_SIZE];
     //itoa(session_id, &_msg);
-    snprintf(_msg, sizeof(_msg), "%d", session_id);
-    strcat(_msg, "/GM/");        // get mail
-    strcat(_msg, _mail);
+    snprintf(_msg, sizeof(_msg), "RM/%d/", session_id);
+    //strcat(_msg, "/GM/");        // get mail
+    strcat(_msg, mail);
 
     send_message(client_fd, _msg);
 
@@ -387,25 +421,25 @@ void get_mails()
 
         while (_token != NULL) 
         {
-            Mail _mail;
-            _mail.Subject = malloc(100 * sizeof(char));
-            _mail.Message = malloc(500 * sizeof(char));
-            _mail.SenderAddress = malloc(100 * sizeof(char));
-            _mail.ReceiverAddress = malloc(100 * sizeof(char));
+            Mail _struct_mail;
+            _struct_mail.Subject = malloc(100 * sizeof(char));
+            _struct_mail.Message = malloc(500 * sizeof(char));
+            _struct_mail.SenderAddress = malloc(100 * sizeof(char));
+            _struct_mail.ReceiverAddress = malloc(100 * sizeof(char));
 
-            if (_mail.Subject == NULL || _mail.Message == NULL ||
-                _mail.SenderAddress == NULL || _mail.ReceiverAddress == NULL) 
+            if (_struct_mail.Subject == NULL || _struct_mail.Message == NULL ||
+                _struct_mail.SenderAddress == NULL || _struct_mail.ReceiverAddress == NULL) 
             {
                 fprintf(stderr, "Memory allocation failed.\n");
                 exit(EXIT_FAILURE);
             }
 
             sscanf(_token, "%d/%99[^/]/%99[^/]/%99[^/]/%499[^~]",
-                &_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress,
-                _mail.Subject, _mail.Message);
+                &_struct_mail.MailId, _struct_mail.SenderAddress, _struct_mail.ReceiverAddress,
+                _struct_mail.Subject, _struct_mail.Message);
 
             if (my_index < MY_NR_MAILS)
-                mails[my_index++] = _mail;
+                mails[my_index++] = _struct_mail;
             else
                 printf("Error at MY_NR_MAILS\n");
 
@@ -453,6 +487,50 @@ void display_mails(char* mail, int type)         // type: 0 -> toate mailurile |
     }
 }
 
+int change_password(char* mail, char* old_password)
+{
+    // CP
+    char currentPassword[30];
+    char newPassword[30];
+
+    get_user_input(currentPassword, sizeof(currentPassword), "Enter current password: ");
+
+    if (strcmp(currentPassword, old_password) != 0) 
+    {
+        printf("Incorrect current password. Password not changed.\n");
+        return 0;
+    }
+
+    get_user_input(newPassword, sizeof(newPassword), "Enter new password: ");
+
+    // TODO
+    char _msg[BUF_SIZE];
+    snprintf(_msg, sizeof(_msg), "CP/%d/", session_id);     // CP/SESS_ID/old_pass/new_pass
+    strcat(_msg, old_password);
+    strcat(_msg, "/");
+    strcat(_msg, newPassword);
+
+    send_message(client_fd, _msg);
+
+    char* response = receive_response(client_fd);
+
+    if (response != NULL)
+    {
+        if (response[0] == '1')
+        {
+            free(response);
+            return 1;
+        } else
+        if (response[0] == '0')
+        {
+            free(response);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 int delete_acount(char* mail, char* password)
 {
     printf ("Sure you want to delete the %s account?\n", mail);
@@ -468,8 +546,8 @@ int delete_acount(char* mail, char* password)
 
         //TODO
         char _msg[BUF_SIZE];
-        snprintf(_msg, sizeof(_msg), "%d", session_id);
-        strcat(_msg, "/DA/");
+        snprintf(_msg, sizeof(_msg), "DA/%d/", session_id);
+        //strcat(_msg, "/DA/");
         strcat(_msg, mail);
 
         //printf("\n%s\n", _msg);
@@ -527,8 +605,8 @@ int delete_mail(char* mail)
 
         //TODO
         char _msg[BUF_SIZE];
-        snprintf(_msg, sizeof(_msg), "%d", session_id);
-        strcat(_msg, "/DM/");
+        snprintf(_msg, sizeof(_msg), "DM/%d/", session_id);
+        //strcat(_msg, "/DM/");
         strcat(_msg, mail);
         strcat(_msg, "/");
         strcat(_msg, _id);
@@ -572,8 +650,9 @@ int show_menu(char* mail, char* password)
     printf("*  2. View sent emails                           *\n");
     printf("*  3. View received emails                       *\n");
     printf("*  4. Write email                                *\n");
-    printf("*  5. Delete account                             *\n");
-    printf("*  6. Go back                                    *\n");
+    printf("*  5. Change password                            *\n");
+    printf("*  6. Delete account                             *\n");
+    printf("*  7. Go back                                    *\n");
     printf("**************************************************\n");
     printf("\nEnter your choice: ");
 
@@ -589,7 +668,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing all emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 0);
         delete_mail(mail);
         press_enter_to_continue();
@@ -601,7 +680,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing sent emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 1);
         delete_mail(mail);
         press_enter_to_continue();
@@ -613,7 +692,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing received emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 2);
         delete_mail(mail);
         press_enter_to_continue();
@@ -631,6 +710,24 @@ int show_menu(char* mail, char* password)
     case 5:
         clear_console();
 
+        printf("Change password...\n");
+
+        // TODO
+        if (change_password(mail, password))
+        {
+            printf("Password changed successfully!\n");
+            displayLoadingAnimation();
+        }    
+        else
+        {
+            printf("Change password failed. Please try again.\n");
+            press_enter_to_continue();
+        }
+
+        break;
+    case 6:
+        clear_console();
+
         printf("Delete account...\n");
 
         if (delete_acount(mail, password))
@@ -644,7 +741,7 @@ int show_menu(char* mail, char* password)
         press_enter_to_continue();
 
         break;
-    case 6:
+    case 7:
         clear_console();
 
         return 0;
