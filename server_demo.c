@@ -50,6 +50,10 @@ void *startThread()
         {
             pthread_cond_wait(&condQueue, &mutexQueue);
         }
+        if (running == 0)
+        {
+            return NULL;
+        }
         Task client = clientQueue[0];
         int i;
         for (i = 0; i < clientCount - 1; i++)
@@ -61,6 +65,7 @@ void *startThread()
         executeTask(&client);
     }
     printf("Closing thread...\n");
+    return NULL;
 }
 
 int main()
@@ -130,7 +135,7 @@ int main()
         {
             perror("Fail to join the thread");
         }
-        printf("THREADUL %d a dat join\n",i);
+        printf("THREADUL %d a dat join\n", i);
     }
     pthread_mutex_destroy(&mutexQueue);
     pthread_cond_destroy(&condQueue);
