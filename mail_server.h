@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include<string.h>  
 
 #define PORT 55555
 #define MAX_MESSAGE_SIZE 4096
@@ -43,8 +44,32 @@ struct _mail{
 };
 typedef struct _mail Mail;
 
-// Client 
+typedef unsigned long long int RSA_key_t;
 
+struct RSA_key{
+    RSA_key_t n;
+    RSA_key_t ed;
+};
+typedef struct RSA_key RSA_Key;
+
+struct RSA_key_pair{
+    RSA_Key publicKey;
+    RSA_Key privateKey;
+};
+
+typedef struct RSA_key_pair RSA_KeyPair;
+
+//Encryption / Decryption
+RSA_key_t* encryptMessage(char*message,RSA_Key key);
+char* decryptMessage(RSA_key_t* encryptedMessage, RSA_key_t size, RSA_Key key);
+RSA_key_t encrypt(RSA_key_t message, RSA_Key key);
+RSA_key_t decrypt(RSA_key_t message, RSA_Key key);
+RSA_KeyPair generateKeyPair();
+
+int sendEncryptedMessage(char *message, int socket, RSA_Key Key);
+int receiveDecryptedMessage(char **decryptedMessage, int socket, RSA_Key Key);
+
+// Client 
 int show_login_register(char** mail, char** password);
 int show_menu(char* mail, char* password);
 int connect_to_server(char* ip);

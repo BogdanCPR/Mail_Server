@@ -357,7 +357,7 @@ void write_email(char* mail)
     }
 }
 
-void get_mails()
+void get_mails(char *mail)
 {
     char* _mail = (char*)malloc(sizeof(char) * BUF_MAIL_SIZE);
     if (_mail == NULL)
@@ -368,9 +368,9 @@ void get_mails()
 
     char _msg[BUF_SIZE];
     //itoa(session_id, &_msg);
-    snprintf(_msg, sizeof(_msg), "%d", session_id);
-    strcat(_msg, "/GM/");        // get mail
-    strcat(_msg, _mail);
+    snprintf(_msg, sizeof(_msg), "RM/%d/", session_id);
+    //strcat(_msg, "/GM/");        // get mail
+    strcat(_msg, mail);
 
     send_message(client_fd, _msg);
     _mail = receive_long_response(client_fd);
@@ -387,25 +387,25 @@ void get_mails()
 
         while (_token != NULL) 
         {
-            Mail _mail;
-            _mail.Subject = malloc(100 * sizeof(char));
-            _mail.Message = malloc(500 * sizeof(char));
-            _mail.SenderAddress = malloc(100 * sizeof(char));
-            _mail.ReceiverAddress = malloc(100 * sizeof(char));
+            Mail _struct_mail;
+            _struct_mail.Subject = malloc(100 * sizeof(char));
+            _struct_mail.Message = malloc(500 * sizeof(char));
+            _struct_mail.SenderAddress = malloc(100 * sizeof(char));
+            _struct_mail.ReceiverAddress = malloc(100 * sizeof(char));
 
-            if (_mail.Subject == NULL || _mail.Message == NULL ||
-                _mail.SenderAddress == NULL || _mail.ReceiverAddress == NULL) 
+            if (_struct_mail.Subject == NULL || _struct_mail.Message == NULL ||
+                _struct_mail.SenderAddress == NULL || _struct_mail.ReceiverAddress == NULL) 
             {
                 fprintf(stderr, "Memory allocation failed.\n");
                 exit(EXIT_FAILURE);
             }
 
             sscanf(_token, "%d/%99[^/]/%99[^/]/%99[^/]/%499[^~]",
-                &_mail.MailId, _mail.SenderAddress, _mail.ReceiverAddress,
-                _mail.Subject, _mail.Message);
+                &_struct_mail.MailId, _struct_mail.SenderAddress, _struct_mail.ReceiverAddress,
+                _struct_mail.Subject, _struct_mail.Message);
 
             if (my_index < MY_NR_MAILS)
-                mails[my_index++] = _mail;
+                mails[my_index++] = _struct_mail;
             else
                 printf("Error at MY_NR_MAILS\n");
 
@@ -591,7 +591,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing all emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 0);
         delete_mail(mail);
         press_enter_to_continue();
@@ -603,7 +603,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing sent emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 1);
         delete_mail(mail);
         press_enter_to_continue();
@@ -615,7 +615,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing received emails...\n");
 
         my_index = 0;
-        get_mails();
+        get_mails(mail);
         display_mails(mail, 2);
         delete_mail(mail);
         press_enter_to_continue();
