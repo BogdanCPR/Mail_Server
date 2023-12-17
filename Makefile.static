@@ -3,22 +3,22 @@ all: Server_Demo Client_Demo
 .PHONY: clean resetDB
 
 MailServer.o: MailServer.c mail_server.h
-	gcc -Wall -c MailServer.c -o MailServer.o
+	gcc -g -Wall -c MailServer.c -o MailServer.o
 
 MailClient.o: MailClient.c mail_server.h
-	gcc -Wall -c MailClient.c -o MailClient.o
+	gcc -g -Wall -c MailClient.c -o MailClient.o
 
 server_demo.o: server_demo.c mail_server.h
-	gcc -Wall -c server_demo.c -o server_demo.o
+	gcc -g -Wall -c server_demo.c -o server_demo.o
 
 client_demo.o: client_demo.c mail_server.h
-	gcc -Wall -c client_demo.c -o client_demo.o
+	gcc -g -Wall -c client_demo.c -o client_demo.o
 
 Server_Demo: server_demo.o MailServer.o
-	gcc server_demo.o MailServer.o -o Server_Demo
+	gcc -g server_demo.o MailServer.o -o Server_Demo
 
 Client_Demo: client_demo.o MailClient.o
-	gcc client_demo.o MailClient.o -o Client_Demo
+	gcc -g client_demo.o MailClient.o -o Client_Demo
 
 clean:
 	rm -f *.o Server_Demo Client_Demo
