@@ -389,7 +389,6 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
     char *mailAddress = strtok(NULL, "\0");
-    printf(">%s\n>%s", session_string, mailAddress);
     for (int i = 0; i < NR_CLIENTS; i++)
     {
         if (!strcmp((*clients)[i].MailAdress, mailAddress))
@@ -406,16 +405,13 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
                         itoa((*mails)[j].MailId, &idString);
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
                         strcat(mailsToSend, idString);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].SenderAddress) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].SenderAddress);
-                        strcat(mailsToSend, "/");
-                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].ReceiverAddress) + 1) * sizeof(char));
-                        strcat(mailsToSend, (*mails)[j].ReceiverAddress);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Subject);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Message);
                         strcat(mailsToSend, "~");
@@ -473,16 +469,13 @@ int request_retrieveMailsSent(char *requestBody, int client_socket, Client **cli
                         itoa((*mails)[j].MailId, &idString);
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen(idString) + 1) * sizeof(char));
                         strcat(mailsToSend, idString);
-                        strcat(mailsToSend, "/");
-                        mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].SenderAddress) + 1) * sizeof(char));
-                        strcat(mailsToSend, (*mails)[j].SenderAddress);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].ReceiverAddress) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].ReceiverAddress);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Subject) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Subject);
-                        strcat(mailsToSend, "/");
+                        strcat(mailsToSend, " ");
                         mailsToSend = (char *)realloc(mailsToSend, (strlen(mailsToSend) + strlen((*mails)[j].Message) + 1) * sizeof(char));
                         strcat(mailsToSend, (*mails)[j].Message);
                         strcat(mailsToSend, "~");
@@ -532,32 +525,38 @@ int request_deleteMail(char *requestBody, int client_socket, Client **clients, M
         {
             if ((*clients)[i].sessionID == sessionID)
             {
-                int ok=0;
+                int ok = 0;
                 for (int j = 0; j < NR_MAILS; j++)
                 {
-                    if((*mails)[j].MailId == mailId && !strcmp((*mails)[j].SenderAddress,mailAddress)){
-                        *mails = removeMail(*mails,mailId,ACTION_RM_SENDER);
-                        if(*mails == NULL){
+                    if ((*mails)[j].MailId == mailId && !strcmp((*mails)[j].SenderAddress, mailAddress))
+                    {
+                        *mails = removeMail(*mails, mailId, ACTION_RM_SENDER);
+                        if (*mails == NULL)
+                        {
                             printf("Failed to remove mail\n");
                             return 0;
                         }
-                        ok=1;
+                        ok = 1;
                     }
-                    if((*mails)[j].MailId == mailId && !strcmp((*mails)[j].ReceiverAddress,mailAddress)){
-                        *mails = removeMail(*mails,mailId,ACTION_RM_RECEIVER);
-                        if(*mails == NULL){
+                    if ((*mails)[j].MailId == mailId && !strcmp((*mails)[j].ReceiverAddress, mailAddress))
+                    {
+                        *mails = removeMail(*mails, mailId, ACTION_RM_RECEIVER);
+                        if (*mails == NULL)
+                        {
                             printf("Failed to remove mail\n");
                             return 0;
                         }
-                        ok=1;
+                        ok = 1;
                     }
                 }
-                if(ok){
+                if (ok)
+                {
                     printf("Mail deleted\n");
                     send(client_socket, "1", 1, 0);
                     return 1;
                 }
-                else{
+                else
+                {
                     printf("Mail not found\n");
                     send(client_socket, "0", 1, 0);
                     return 0;
@@ -585,22 +584,66 @@ int request_deleteMail(char *requestBody, int client_socket, Client **clients, M
     return 0;
 }
 
+int establishKeyChange(int client_socket, RSA_Key publicKey)
+{
+    char *nString;
+    itoa(publicKey.n, &nString);
+    char *edString;
+    itoa(publicKey.ed, &edString);
+    char *message = (char *)malloc((strlen(nString) + strlen(edString) + 3) * sizeof(char));
+    strcpy(message, nString);
+    strcat(message, " ");
+    strcat(message, edString);
+    int bytesSend = send(client_socket, message, strlen(message), 0);
+    if (bytesSend < 1)
+    {
+        perror("error sending reply");
+        return 0;
+    }
+    printf("Sent public key\n");
+    strcpy(message, "\0");
+    int bytesReceived = recv(client_socket, message, MAX_MESSAGE_SIZE, 0);
+    message[bytesReceived] = '\0';
+    printf("Received reply: %s\n", message);
+    if (bytesReceived < 1)
+    {
+        perror("error receiving reply");
+        return 0;
+    }
+    if (message[0] == '1')
+    {
+        printf("Client accepted public key\n");
+    }
+    else
+    {
+        printf("Client rejected public key\n");
+        return 0;
+    }
+    send(client_socket, "1", 1, 0);
+    return 1;
+}
+
+    
+
 int handle_client(int client_socket, Client **clients, Mail **mails)
 {
-    char buffer[MAX_MESSAGE_SIZE];
-    int message_len;
+    RSA_KeyPair keyPair = generateKeyPair();
     printf("clients's file descriptor: %d\n", client_socket);
+
+    int code = establishKeyChange(client_socket, keyPair.publicKey);
+    if (code == 0)
+    {
+        printf("Could not establish key change\n");
+        return 0;
+    }
+
     while (1)
     {
-        message_len = recv(client_socket, buffer, MAX_MESSAGE_SIZE, 0);
-        if (message_len <= 0)
-        {
-            printf("Client disconnected.\n");
-            break;
-        }
-        buffer[message_len] = '~';
+        char *decryptedMessage=NULL;
+        int messageSize = receiveDecryptedMessage(&decryptedMessage, client_socket, keyPair.privateKey);
+        decryptedMessage[messageSize] = '~';
 
-        char *requestType = strtok(buffer, "/");
+        char *requestType = strtok(decryptedMessage, "/");
         char *requestBody = strtok(NULL, "~");
 
         if (!strcmp(requestType, "LG"))
@@ -642,7 +685,7 @@ int handle_client(int client_socket, Client **clients, Mail **mails)
         {
             printf("Client sent an unknown request");
         }
-        strcpy(buffer, "\0");
+        free(decryptedMessage);
     }
     close(client_socket);
     return 1;

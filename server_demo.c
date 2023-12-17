@@ -17,7 +17,7 @@ int clientCount = 0;
 pthread_mutex_t mutexQueue;
 pthread_cond_t condQueue;
 
-int running = 1;
+_Atomic int running = 1;
 void sig_handler(int signum)
 {
     if (signum == SIGINT)
@@ -50,9 +50,10 @@ void *startThread()
         {
             pthread_cond_wait(&condQueue, &mutexQueue);
         }
-        if (running == 0)
+        if (!running)
         {
-            return NULL;
+            pthread_mutex_unlock(&mutexQueue);
+            break;
         }
         Task client = clientQueue[0];
         int i;
@@ -65,11 +66,11 @@ void *startThread()
         executeTask(&client);
     }
     printf("Closing thread...\n");
-    return NULL;
 }
 
 int main()
 {
+    srand(time(NULL));
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
     socklen_t addr_len = sizeof(struct sockaddr);
@@ -86,12 +87,6 @@ int main()
 
     loadClients(&clients);
     loadMails(&mails);
-
-    //   mails = addMail(mails,"Test", "Exemplu de mesaj\npentru aplicatia de server de mail\n proiect pso","capritabogdan@casin.ro","sindilarstefan@casin.ro",DEFAULT,-1);
-    //   mails = addMail(mails,"Test2", "Alt\nexemplu\nca sa fie.","sindilarstefan@casin.ro","capritabogdan@casin.ro",DEFAULT,-1);
-    //   saveMails(mails);
-    //   saveClients(clients);
-    //   return(0);
 
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -129,6 +124,11 @@ int main()
         }
     }
     printf("A iesit din while MAIN THREAD\n");
+
+    pthread_mutex_lock(&mutexQueue);
+    pthread_cond_broadcast(&condQueue);
+    pthread_mutex_unlock(&mutexQueue);
+
     for (int i = 0; i < THREAD_NUM; i++)
     {
         if (pthread_join(threads[i], NULL) != 0)
