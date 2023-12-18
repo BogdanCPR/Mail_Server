@@ -70,7 +70,6 @@ void *startThread()
 
 int main()
 {
-    ///salll
     srand(time(NULL));
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;

@@ -671,6 +671,7 @@ int handle_client(int client_socket, Client **clients, Mail **mails)
             printf("Client disconnected\n");
             return 0;
         }
+
         decryptedMessage[messageSize] = '~';
 
         char *requestType = strtok(decryptedMessage, "/");
