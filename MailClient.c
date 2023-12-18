@@ -390,6 +390,7 @@ void write_email(char* mail)
     }
 }
 
+
 void get_mails(char* mail)
 {
     char* _mail = (char*)malloc(sizeof(char) * BUF_MAIL_SIZE);
