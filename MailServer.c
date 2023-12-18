@@ -192,7 +192,7 @@ void saveClients(Client *clienti)
     close(fd);
 }
 
-int request_login(char *request, int client_socket, Client **clients)
+int request_login(char *request, int client_socket, Client **clients, RSA_Key privateKey)
 {
     char *mail = strtok(request, "/");
     char *password = strtok(NULL, "~");
@@ -206,7 +206,8 @@ int request_login(char *request, int client_socket, Client **clients)
             (*clients)[i].sessionID = sessionId;
             char *SSID_string;
             itoa(sessionId, &SSID_string);
-            int bytesSend = send(client_socket, SSID_string, 5, 0);
+            int bytesSend = sendEncryptedMessage(SSID_string, client_socket, privateKey);
+            //int bytesSend = send(client_socket, SSID_string, 5, 0);
             if (bytesSend < 1)
             {
                 perror("error sending reply");
@@ -217,7 +218,8 @@ int request_login(char *request, int client_socket, Client **clients)
         }
     }
     // creditentals were incorrect
-    int bytesSend = send(client_socket, "0", 1, 0);
+    //int bytesSend = send(client_socket, "0", 1, 0);
+    int bytesSend = sendEncryptedMessage("0", client_socket, privateKey);
     if (bytesSend < 1)
     {
         perror("error sending reply");
@@ -227,7 +229,7 @@ int request_login(char *request, int client_socket, Client **clients)
     return 0;
 }
 
-int request_register(char *request, int client_socket, Client **clients)
+int request_register(char *request, int client_socket, Client **clients, RSA_Key privateKey)
 {
     char *mail = strtok(request, "/");
     char *password = strtok(NULL, "~");
@@ -236,7 +238,8 @@ int request_register(char *request, int client_socket, Client **clients)
     {
         if (!strcmp(mail, (*clients)[i].MailAdress))
         {
-            int bytesSend = send(client_socket, "0", 1, 0);
+            //int bytesSend = send(client_socket, "0", 1, 0);
+            int bytesSend = sendEncryptedMessage("0", client_socket, privateKey);
             if (bytesSend < 1)
             {
                 perror("error sending reply");
@@ -252,7 +255,8 @@ int request_register(char *request, int client_socket, Client **clients)
         perror("error adding client");
         exit(0);
     }
-    int bytesSend = send(client_socket, "1", 1, 0);
+    //int bytesSend = send(client_socket, "1", 1, 0);
+    int bytesSend = sendEncryptedMessage("1", client_socket, privateKey);
     if (bytesSend < 1)
     {
         perror("error sending reply");
@@ -262,7 +266,7 @@ int request_register(char *request, int client_socket, Client **clients)
     return 0;
 }
 
-int request_write(char *requestBody, int client_socket, Client **clients, Mail **mails)
+int request_write(char *requestBody, int client_socket, Client **clients, Mail **mails, RSA_Key privateKey)
 {
     char *idString = strtok(requestBody, "/");
     int sessionId = atoi(idString);
@@ -279,7 +283,8 @@ int request_write(char *requestBody, int client_socket, Client **clients, Mail *
             {
                 *mails = addMail(*mails, subject, message, senderAddress, receiverAddress, DEFAULT, -1);
                 printf("Mail sent\n");
-                send(client_socket, "1", 1, 0);
+                //send(client_socket, "1", 1, 0);
+                sendEncryptedMessage("1", client_socket, privateKey);
                 return 1;
             }
             else
@@ -287,20 +292,23 @@ int request_write(char *requestBody, int client_socket, Client **clients, Mail *
                 if ((*clients)[i].sessionID != 0)
                 {
                     printf("Incorrect session id");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
                 else
                 {
                     printf("Client not connected\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
         }
     }
     printf("Client not connected\n");
-    send(client_socket, "0", 1, 0);
+    //send(client_socket, "0", 1, 0);
+    sendEncryptedMessage("0", client_socket, privateKey);
     return 0;
 }
 
@@ -342,7 +350,7 @@ int deleteClientData(char *mailAddress, Client **clients, Mail **mails)
     return 1;
 }
 
-int request_deleteAccount(char *requestBody, int client_socket, Client **clients, Mail **mails)
+int request_deleteAccount(char *requestBody, int client_socket, Client **clients, Mail **mails, RSA_Key privateKey)
 {
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
@@ -359,7 +367,8 @@ int request_deleteAccount(char *requestBody, int client_socket, Client **clients
                     return 0;
                 }
                 printf("Account deleted\n");
-                send(client_socket, "1", 1, 0);
+                //send(client_socket, "1", 1, 0);
+                sendEncryptedMessage("1", client_socket, privateKey);
                 return 1;
             }
             else
@@ -367,24 +376,27 @@ int request_deleteAccount(char *requestBody, int client_socket, Client **clients
                 if ((*clients)[i].sessionID == 0)
                 {
                     printf("Client is not connected");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
                 if ((*clients)[i].sessionID != sessionID)
                 {
                     printf("Wrong session id\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
         }
     }
     printf("There are no clients\n");
-    send(client_socket, "0", 1, 0);
+    //send(client_socket, "0", 1, 0);
+    sendEncryptedMessage("0", client_socket, privateKey);
     return 0;
 }
 
-int request_retrieveMails(char *requestBody, int client_socket, Client **clients, Mail **mails)
+int request_retrieveMails(char *requestBody, int client_socket, Client **clients, Mail **mails, RSA_Key privateKey)
 {
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
@@ -417,7 +429,8 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
                         strcat(mailsToSend, "~");
                     }
                 }
-                int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                //int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                int bytesSend = sendEncryptedMessage(mailsToSend, client_socket, privateKey);
                 if (bytesSend < 1)
                 {
                     perror("error sending reply");
@@ -431,24 +444,27 @@ int request_retrieveMails(char *requestBody, int client_socket, Client **clients
                 if ((*clients)[i].sessionID == 0)
                 {
                     printf("Client is not connected");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
                 if ((*clients)[i].sessionID != sessionID)
                 {
                     printf("Wrong session id\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
         }
     }
     printf("There are no clients\n");
-    send(client_socket, "0", 1, 0);
+    //send(client_socket, "0", 1, 0);
+    sendEncryptedMessage("0", client_socket, privateKey);
     return 0;
 }
 
-int request_retrieveMailsSent(char *requestBody, int client_socket, Client **clients, Mail **mails)
+int request_retrieveMailsSent(char *requestBody, int client_socket, Client **clients, Mail **mails, RSA_Key privateKey)
 {
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
@@ -481,7 +497,8 @@ int request_retrieveMailsSent(char *requestBody, int client_socket, Client **cli
                         strcat(mailsToSend, "~");
                     }
                 }
-                int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                //int bytesSend = send(client_socket, mailsToSend, strlen(mailsToSend), 0);
+                int bytesSend = sendEncryptedMessage(mailsToSend, client_socket, privateKey);
                 if (bytesSend < 1)
                 {
                     perror("error sending reply");
@@ -495,24 +512,27 @@ int request_retrieveMailsSent(char *requestBody, int client_socket, Client **cli
                 if ((*clients)[i].sessionID == 0)
                 {
                     printf("Client is not connected");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
                 if ((*clients)[i].sessionID != sessionID)
                 {
                     printf("Wrong session id\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
         }
     }
     printf("There are no clients\n");
-    send(client_socket, "0", 1, 0);
+    //send(client_socket, "0", 1, 0);
+    sendEncryptedMessage("0", client_socket, privateKey);
     return 0;
 }
 
-int request_deleteMail(char *requestBody, int client_socket, Client **clients, Mail **mails)
+int request_deleteMail(char *requestBody, int client_socket, Client **clients, Mail **mails, RSA_Key privateKey)
 {
     char *session_string = strtok(requestBody, "/");
     int sessionID = atoi(session_string);
@@ -552,13 +572,15 @@ int request_deleteMail(char *requestBody, int client_socket, Client **clients, M
                 if (ok)
                 {
                     printf("Mail deleted\n");
-                    send(client_socket, "1", 1, 0);
+                    //send(client_socket, "1", 1, 0);
+                    sendEncryptedMessage("1", client_socket, privateKey);
                     return 1;
                 }
                 else
                 {
                     printf("Mail not found\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
@@ -567,20 +589,23 @@ int request_deleteMail(char *requestBody, int client_socket, Client **clients, M
                 if ((*clients)[i].sessionID == 0)
                 {
                     printf("Client is not connected");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
                 if ((*clients)[i].sessionID != sessionID)
                 {
                     printf("Wrong session id\n");
-                    send(client_socket, "0", 1, 0);
+                    //send(client_socket, "0", 1, 0);
+                    sendEncryptedMessage("0", client_socket, privateKey);
                     return 0;
                 }
             }
         }
     }
     printf("There are no clients\n");
-    send(client_socket, "0", 1, 0);
+    //send(client_socket, "0", 1, 0);
+    sendEncryptedMessage("0", client_socket, privateKey);
     return 0;
 }
 
@@ -641,6 +666,11 @@ int handle_client(int client_socket, Client **clients, Mail **mails)
     {
         char *decryptedMessage=NULL;
         int messageSize = receiveDecryptedMessage(&decryptedMessage, client_socket, keyPair.privateKey);
+        if (messageSize == 0)
+        {
+            printf("Client disconnected\n");
+            return 0;
+        }
         decryptedMessage[messageSize] = '~';
 
         char *requestType = strtok(decryptedMessage, "/");
@@ -649,37 +679,37 @@ int handle_client(int client_socket, Client **clients, Mail **mails)
         if (!strcmp(requestType, "LG"))
         {
             printf("Client requested to log in\n");
-            request_login(requestBody, client_socket, clients);
+            request_login(requestBody, client_socket, clients, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "RG"))
         {
             printf("Client requested to register\n");
-            request_register(requestBody, client_socket, clients);
+            request_register(requestBody, client_socket, clients, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "WR"))
         {
             printf("Client requested to send a mail\n");
-            request_write(requestBody, client_socket, clients, mails);
+            request_write(requestBody, client_socket, clients, mails, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "RM"))
         {
             printf("Client requested to receive his mails\n");
-            request_retrieveMails(requestBody, client_socket, clients, mails);
+            request_retrieveMails(requestBody, client_socket, clients, mails, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "RMS"))
         {
             printf("Client requested to receive mails sent\n");
-            request_retrieveMails(requestBody, client_socket, clients, mails);
+            request_retrieveMails(requestBody, client_socket, clients, mails, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "DM"))
         {
             printf("Client requested to delete a mail\n");
-            request_deleteMail(requestBody, client_socket, clients, mails);
+            request_deleteMail(requestBody, client_socket, clients, mails, keyPair.privateKey);
         }
         else if (!strcmp(requestType, "DA"))
         {
             printf("Client requested to delete his account\n");
-            request_deleteAccount(requestBody, client_socket, clients, mails);
+            request_deleteAccount(requestBody, client_socket, clients, mails, keyPair.privateKey);
         }
         else
         {

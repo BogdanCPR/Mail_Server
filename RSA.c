@@ -156,7 +156,6 @@ char* decryptMessage(RSA_key_t* encryptedMessage, RSA_key_t size, RSA_Key key)
 int receiveDecryptedMessage(char **decryptedMessage, int socket,RSA_Key Key)
 {
     // receive message size in clear
-    //breakpoint("AM AJUNS AICI");
     char message[MAX_MESSAGE_SIZE];
     strcpy(message, "");
 
