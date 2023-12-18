@@ -1,7 +1,8 @@
 {
   "files.associations": {
     "mail_server.h": "c",
-    "typeinfo": "c"
+    "typeinfo": "c",
+    "unistd.h": "c"
   },
   "C_Cpp_Runner.msvcBatchPath": "",
   "C_Cpp_Runner.cCompilerPath": "gcc",

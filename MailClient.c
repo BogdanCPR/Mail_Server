@@ -8,9 +8,21 @@ int client_fd;
 int session_id;
 Mail mails[MY_NR_MAILS];
 int my_index = 0;
+RSA_Key publicKey;
+
+void printMailPattern() 
+{
+    printf(
+ "     ██████  █████  ███████ ██ ███    ██     ███    ███  █████  ██ ██      \n"
+ "    ██      ██   ██ ██      ██ ████   ██     ████  ████ ██   ██ ██ ██      \n"
+ "    ██      ███████ ███████ ██ ██ ██  ██     ██ ████ ██ ███████ ██ ██      \n"
+ "    ██      ██   ██      ██ ██ ██  ██ ██     ██  ██  ██ ██   ██ ██ ██      \n"
+ "     ██████ ██   ██ ███████ ██ ██   ████     ██      ██ ██   ██ ██ ███████ \n\n");
+                                                                           
+}
 
 // Functie de criptare folosind XOR
-char* encrypt(const char *data, int sessionID) 
+char* old_encrypt(const char *data, int sessionID) 
 {
     size_t len = strlen(data);
     unsigned char *sessionBytes = (unsigned char *)&sessionID;
@@ -27,7 +39,7 @@ char* encrypt(const char *data, int sessionID)
 }
 
 // Functie de decriptare folosind XOR
-char* decrypt(const char *data, int sessionID) 
+char* old_decrypt(const char *data, int sessionID) 
 {
     size_t len = strlen(data);
     unsigned char *sessionBytes = (unsigned char *)&sessionID;
@@ -45,6 +57,23 @@ char* decrypt(const char *data, int sessionID)
 
 void send_message(int cfd, char *message) 
 {
+    /*int bytes_sent;
+
+    // Send the message to the server
+    bytes_sent = send(cfd, message, strlen(message), 0);
+
+    if (bytes_sent < 0) 
+    {
+        perror("Error sending message");
+    } else {
+        printf("Message sent successfully: %s\n", message);
+    }*/
+
+    sendEncryptedMessage(message, cfd, publicKey);
+}
+
+void send_clear_message(int cfd, char* message)
+{
     int bytes_sent;
 
     // Send the message to the server
@@ -56,9 +85,51 @@ void send_message(int cfd, char *message)
     } else {
         printf("Message sent successfully: %s\n", message);
     }
+
 }
 
 char* receive_response(int cfd) 
+{
+    char* buf = (char*)malloc(sizeof(char) * BUF_SIZE);
+
+    if (buf == NULL) 
+    {
+        perror("Memory allocation error");
+        return NULL;
+    }
+
+    printf("Waiting for response...\n");
+    int _lenght = receiveDecryptedMessage(&buf, cfd, publicKey);
+    printf ("Lenght: %d\n", _lenght);
+    buf[_lenght] = '\0';
+    printf("MSG: %s\n", buf);
+/*
+    // Primește răspunsul de la server
+    int bytes_received = recv(cfd, buf, BUF_SIZE - 1, 0);
+
+    if (bytes_received < 0) 
+    {
+        perror("Recv failed");
+        free(buf);
+        return NULL;
+    } else 
+    if (bytes_received == 0) 
+    {
+        printf("Server disconnected\n");
+        free(buf);
+        return NULL;
+    } else 
+    {
+        buf[bytes_received] = '\0';
+        printf("Received response from server: %s\n", buf);
+        return buf;
+    }
+*/
+
+    return buf;
+}
+
+char* receive_clear_response(int cfd)
 {
     char* buf = (char*)malloc(sizeof(char) * BUF_SIZE);
 
@@ -134,6 +205,8 @@ void clear_console()
     #else
         system("clear");  // Pentru Linux/Unix
     #endif
+
+    printMailPattern();
 }
 
 void displayLoadingAnimation() 
@@ -171,6 +244,28 @@ void get_user_input(char *input, int size, const char *prompt)
     getchar();
 }
 
+void get_user_input_password(char *input, int size, const char *prompt)
+{
+    struct termios old_term, new_term;
+
+    // Disable terminal echo
+    tcgetattr(STDIN_FILENO, &old_term);
+    new_term = old_term;
+    new_term.c_lflag &= ~(ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_term);
+
+    printf("%s", prompt);
+    fflush(stdout);
+
+    scanf(" %[^\n]", input);    // citeste pana la \n
+    getchar();
+
+    // Enable terminal echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &old_term);
+
+    printf("\n");
+}
+
 int login_client(char** mail, char** password)
 {
     char _mail[30];
@@ -178,7 +273,7 @@ int login_client(char** mail, char** password)
     printf("\n");
 
     get_user_input(_mail, sizeof(_mail), "Mail: ");
-    get_user_input(_password, sizeof(_password), "Password: ");
+    get_user_input_password(_password, sizeof(_password), "Password: ");
 
     // TODO
     char msg[BUF_SIZE];
@@ -226,10 +321,18 @@ int register_client()
 {
     char _mail[30];
     char _password[20];
+    char _passwordConfirm[20];
     printf("\n");
 
     get_user_input(_mail, sizeof(_mail), "Mail: ");
-    get_user_input(_password, sizeof(_password), "Password: ");
+    get_user_input_password(_password, sizeof(_password), "Password: ");
+    get_user_input_password(_passwordConfirm, sizeof(_passwordConfirm), "Confirm Password: ");
+    
+    if (strcmp(_password, _passwordConfirm) != 0)
+    {
+        printf("Passwords do not match!\n");
+        return 0;
+    }
 
     // TODO
     printf("Clientul: %s, %s \n", _mail, _password);
@@ -266,11 +369,11 @@ int show_login_register(char** mail, char** password)
 {
     clear_console();
 
-    printf("********** Welcome to Mail Application! **********\n");
-    printf("*  1. Login                                      *\n");
-    printf("*  2. Register                                   *\n");
-    printf("*  3. Exit                                       *\n");
-    printf("**************************************************\n");
+    printf("********************** Welcome to Mail Application! **********************\n");
+    printf("*  1. Login                                                              *\n");
+    printf("*  2. Register                                                           *\n");
+    printf("*  3. Exit                                                               *\n");
+    printf("**************************************************************************\n");
     printf("\nEnter your choice: ");
     
     int choice;
@@ -282,7 +385,7 @@ int show_login_register(char** mail, char** password)
     case 1:
         clear_console();
 
-        printf("==================== Login... ====================\n");
+        printf("================================= Login... ===============================\n");
 
         if (login_client(mail, password))
         {
@@ -303,7 +406,7 @@ int show_login_register(char** mail, char** password)
     case 2:
         clear_console();
 
-        printf("================== Register... ===================\n");
+        printf("============================== Register... ===============================\n");
 
         if (register_client())
         {
@@ -320,7 +423,8 @@ int show_login_register(char** mail, char** password)
     case 3:
         clear_console();
 
-        printf("====================== Exit ======================\n");
+        printf("================================== Exit ==================================\n");
+
         exit(EXIT_SUCCESS);
 
         break;
@@ -646,15 +750,15 @@ int delete_mail(char* mail)
 
 int show_menu(char* mail, char* password)
 {
-    printf("******************* Main Menu! *******************\n");
-    printf("*  1. View all emails                            *\n");
-    printf("*  2. View sent emails                           *\n");
-    printf("*  3. View received emails                       *\n");
-    printf("*  4. Write email                                *\n");
-    printf("*  5. Change password                            *\n");
-    printf("*  6. Delete account                             *\n");
-    printf("*  7. Go back                                    *\n");
-    printf("**************************************************\n");
+    printf("******************************* Main Menu! *******************************\n");
+    printf("*  1. View all emails                                                    *\n");
+    printf("*  2. View sent emails                                                   *\n");
+    printf("*  3. View received emails                                               *\n");
+    printf("*  4. Write email                                                        *\n");
+    printf("*  5. Change password                                                    *\n");
+    printf("*  6. Delete account                                                     *\n");
+    printf("*  7. Go back                                                            *\n");
+    printf("**************************************************************************\n");
     printf("\nEnter your choice: ");
 
     int choice;
@@ -789,4 +893,18 @@ int connect_to_server(char* ip)
     printf("Connection Successful!\n");
 
     return cfd;
+}
+
+void receiveKey(int cfd)
+{
+    char* _msg = receive_clear_response(cfd);
+
+    printf("MSG Rcv: %s\n", _msg);
+    
+    char *_token = strtok(_msg, " ");
+    publicKey.n = atoi(_token);
+    publicKey.ed = atoi(strtok(NULL, " "));
+
+    send_clear_message(cfd, "1");         // ACK
+    receive_clear_response(cfd);          // pt sincronizare cu serverul 1
 }
