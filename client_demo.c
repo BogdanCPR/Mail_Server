@@ -3,13 +3,12 @@
 int main(int argc, char *argv[])
 {
 	int client_fd = connect_to_server("127.0.0.1");
-	//int client_fd = 123;
+	receiveKey(client_fd);
 	
 	press_enter_to_continue();
 
 	if (client_fd != -1)
 	{
-
 		set_client_fd(client_fd);
 
 		clear_console();

@@ -11,7 +11,8 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
-#include<string.h>  
+#include <string.h>  
+#include <termios.h>
 
 #define PORT 55555
 #define MAX_MESSAGE_SIZE 4096
@@ -77,9 +78,11 @@ int connect_to_server(char* ip);
 void clear_console();
 void press_enter_to_continue();
 void set_client_fd(int fd);
+void receiveKey(int cfd);
+void printMailPattern();
 
-char* encrypt(const char *data, int sessionID);
-char* decrypt(const char *data, int sessionID);
+char* old_encrypt(const char *data, int sessionID);
+char* old_decrypt(const char *data, int sessionID);
 
 // Server
 Client* addClient(Client* clients, char* mailAdress, char* name);
