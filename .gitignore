@@ -1,7 +1,5 @@
-
 *.json
 .vscode/settings.json
-
 *.so
 *.o
 Client_Demo
