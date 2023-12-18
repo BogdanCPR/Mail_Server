@@ -160,6 +160,12 @@ int receiveDecryptedMessage(char **decryptedMessage, int socket,RSA_Key Key)
     strcpy(message, "");
 
     int bytesReceived = recv(socket, message, MAX_MESSAGE_SIZE, 0);
+    if (bytesReceived == 0)
+    {
+        printf("Client disconnected\n");
+        return 0;
+    }
+    
     if (bytesReceived < 1)
     {
         perror("error receiving reply");
@@ -191,6 +197,8 @@ int receiveDecryptedMessage(char **decryptedMessage, int socket,RSA_Key Key)
 
 int sendEncryptedMessage(char *message, int socket, RSA_Key Key)
 {
+    printf("Sending message: %s\n", message);
+
     // encrypt the message
     RSA_key_t *encryptedMessage = encryptMessage(message, Key);
     // send message size in clear
