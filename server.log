@@ -1,0 +1,37 @@
+2023-12-23 12:42:14
+Server started
+
+2023-12-23 12:42:17
+Client accepted public key
+
+2023-12-23 12:42:24
+Client requested to log in
+
+2023-12-23 12:42:24
+Client's creditentials were incorect.
+
+
+2023-12-23 12:42:31
+Client requested to log in
+
+2023-12-23 12:42:31
+Client successfully loged in with the session id: 67416
+
+
+2023-12-23 12:42:38
+Client requested to change his password
+
+2023-12-23 12:42:38
+Password changed
+
+
+2023-12-23 12:42:41
+Client requested to receive all mails
+
+2023-12-23 12:42:41
+Mails sent
+
+
+2023-12-23 12:42:51
+Client disconnected
+

@@ -189,6 +189,14 @@ int receiveDecryptedMessage(char **decryptedMessage, int socket,RSA_Key Key)
         perror("error receiving reply");
         return 0;
     }
+
+    //uncomment to print encrypted message
+    // encryptedMessageString[bytesReceived] = '\0';
+    // for(int i = 0; i < bytesReceived; i++)
+    // {
+    //     printf("%lx", encryptedMessageString[i]);
+    // }
+    
     RSA_key_t* encryptedMessage = (RSA_key_t*)encryptedMessageString;
     // decrypt the message
     *decryptedMessage = decryptMessage(encryptedMessage, messageSize, Key);

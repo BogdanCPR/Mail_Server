@@ -85,6 +85,9 @@ char* old_encrypt(const char *data, int sessionID);
 char* old_decrypt(const char *data, int sessionID);
 
 // Server
+void initialiseLog();
+void addLog(char* message);
+
 Client* addClient(Client* clients, char* mailAdress, char* name);
 Client* removeClient(Client* clients, char* mailAdress);
 
