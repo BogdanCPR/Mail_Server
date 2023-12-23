@@ -57,18 +57,6 @@ char* old_decrypt(const char *data, int sessionID)
 
 void send_message(int cfd, char *message) 
 {
-    /*int bytes_sent;
-
-    // Send the message to the server
-    bytes_sent = send(cfd, message, strlen(message), 0);
-
-    if (bytes_sent < 0) 
-    {
-        perror("Error sending message");
-    } else {
-        printf("Message sent successfully: %s\n", message);
-    }*/
-
     sendEncryptedMessage(message, cfd, publicKey);
 }
 
@@ -85,7 +73,6 @@ void send_clear_message(int cfd, char* message)
     } else {
         printf("Message sent successfully: %s\n", message);
     }
-
 }
 
 char* receive_response(int cfd) 
@@ -98,33 +85,8 @@ char* receive_response(int cfd)
         return NULL;
     }
 
-    printf("Waiting for response...\n");
     int _lenght = receiveDecryptedMessage(&buf, cfd, publicKey);
-    printf ("Lenght: %d\n", _lenght);
     buf[_lenght] = '\0';
-    printf("MSG: %s\n", buf);
-/*
-    // Primește răspunsul de la server
-    int bytes_received = recv(cfd, buf, BUF_SIZE - 1, 0);
-
-    if (bytes_received < 0) 
-    {
-        perror("Recv failed");
-        free(buf);
-        return NULL;
-    } else 
-    if (bytes_received == 0) 
-    {
-        printf("Server disconnected\n");
-        free(buf);
-        return NULL;
-    } else 
-    {
-        buf[bytes_received] = '\0';
-        printf("Received response from server: %s\n", buf);
-        return buf;
-    }
-*/
 
     return buf;
 }
@@ -170,27 +132,12 @@ char* receive_long_response(int cfd)
         perror("Memory allocation error");
         return NULL;
     }
+    int _lenght = receiveDecryptedMessage(&buf, cfd, publicKey);
+    buf[_lenght] = '\0';
 
-    // Primește răspunsul de la server
-    int bytes_received = recv(cfd, buf, BUF_SIZE - 1, 0);
+    printf("Received response from server: %s\n", buf);
 
-    if (bytes_received < 0) 
-    {
-        perror("Recv failed");
-        free(buf);
-        return NULL;
-    } else 
-    if (bytes_received == 0) 
-    {
-        printf("Server disconnected\n");
-        free(buf);
-        return NULL;
-    } else 
-    {
-        buf[bytes_received] = '\0';
-        printf("Received response from server: %s\n", buf);
-        return buf;
-    }
+    return buf;
 }
 
 void set_client_fd(int fd)
@@ -494,29 +441,33 @@ void write_email(char* mail)
     }
 }
 
-
-void get_mails(char* mail)
+void get_mails(char* mail, int type)
 {
-    char* _mail = (char*)malloc(sizeof(char) * BUF_MAIL_SIZE);
-    if (_mail == NULL)
+    char _msg[BUF_SIZE];
+
+    switch (type)
     {
-        fprintf(stderr, "Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
+    case 0:
+        snprintf(_msg, sizeof(_msg), "RMA/%d/", session_id);     // RMA recive all mails
+        strcat(_msg, mail);
+        break;
+    case 1:
+        snprintf(_msg, sizeof(_msg), "RMS/%d/", session_id);     // RM recive send mails
+        strcat(_msg, mail);
+        break;
+    case 2:
+        snprintf(_msg, sizeof(_msg), "RMR/%d/", session_id);     // RM recive recoved mails
+        strcat(_msg, mail);
+        break;
+    
+    default:
+        break;
     }
 
-    char _msg[BUF_SIZE];
-    //itoa(session_id, &_msg);
-    snprintf(_msg, sizeof(_msg), "RM/%d/", session_id);
-    //strcat(_msg, "/GM/");        // get mail
-    strcat(_msg, mail);
-
+    
     send_message(client_fd, _msg);
 
-    _mail = receive_long_response(client_fd);
-
-    //
-    //strcpy(_mail, "1/sender1@example.com/receiver1@example.com/Subject 1/Content 1~2/sender2@example.com/receiver2@example.com/Subject 2/Content 2");
-    //
+    char* _mail = receive_long_response(client_fd);
 
     if (_mail != NULL)
     {
@@ -559,13 +510,13 @@ void get_mails(char* mail)
 
 void display_mail(int MailId, char* SenderAddress, char* ReceiverAddress, char* Subject, char* Message)
 {
-    printf("------------------------------------------------------\n");
+    printf("----------------------------------------------------------------\n");
     printf("Mail ID: %d\n", MailId);
     printf("Sender Address: %s\n", SenderAddress);
     printf("Receiver Address: %s\n", ReceiverAddress);
     printf("Subject: %s\n", Subject);
     printf("Content: %s\n", Message);
-    printf("------------------------------------------------------\n\n");
+    printf("----------------------------------------------------------------\n\n");
 }
 
 void display_mails(char* mail, int type)         // type: 0 -> toate mailurile | 1 -> mailurile trimise
@@ -716,7 +667,7 @@ int delete_mail(char* mail)
         strcat(_msg, "/");
         strcat(_msg, _id);
 
-        //printf("\n%s\n", _msg);
+        printf("\n%s\n", _msg);
 
         send_message(client_fd, _msg);
 
@@ -773,7 +724,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing all emails...\n");
 
         my_index = 0;
-        get_mails(mail);
+        get_mails(mail, 0);
         display_mails(mail, 0);
         delete_mail(mail);
         press_enter_to_continue();
@@ -785,7 +736,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing sent emails...\n");
 
         my_index = 0;
-        get_mails(mail);
+        get_mails(mail, 1);
         display_mails(mail, 1);
         delete_mail(mail);
         press_enter_to_continue();
@@ -797,7 +748,7 @@ int show_menu(char* mail, char* password)
         printf("Viewing received emails...\n");
 
         my_index = 0;
-        get_mails(mail);
+        get_mails(mail, 2);
         display_mails(mail, 2);
         delete_mail(mail);
         press_enter_to_continue();
